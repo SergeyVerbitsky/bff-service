@@ -1,0 +1,75 @@
+apply plugin: 'java'
+apply plugin: 'checkstyle'
+apply plugin: 'com.github.spotbugs'
+apply plugin: 'pmd'
+
+ext {
+    rev_checkstyle = '8.38'
+}
+
+checkstyle {
+    configDirectory = file("${rootDir}/gradle-common/config/checkstyle")
+    // The version of the code quality tool to be used.
+    // The most recent version of Checkstyle can be found at https://github.com/checkstyle/checkstyle/releases
+    toolVersion = rev_checkstyle
+
+    // The source sets to be analyzed as part of the check and build tasks.
+    // Use 'sourceSets = []' to remove Checkstyle from the check and build tasks.
+
+    sourceSets = [project.sourceSets.main]
+
+    // Whether or not to allow the build to continue if there are warnings.
+    ignoreFailures = false
+
+    // Whether or not rule violations are to be displayed on the console.
+    showViolations = true
+}
+
+checkstyleMain {
+    source ='src/main/java'
+}
+
+spotbugs {
+    toolVersion = "4.7.3"
+    reportsDir = file("$project.buildDir/reports/spotbugs")
+    reportLevel = 'high'
+    effort = "max"
+
+    excludeFilter = file("${rootDir}/gradle-common/config/spotbugs/spotbugs-exclude.xml")
+}
+
+[spotbugsMain, spotbugsTest].each { task ->
+    task.dependsOn(compileJava)
+    task.configure {
+        sourceDirs = fileTree(dir: 'src', include: '**/*.java')
+        classDirs = fileTree('build/classes/java/main/com')
+
+        reportLevel = 'high'
+        effort = "max"
+
+        ignoreFailures = false
+        showProgress = false
+
+        reports {
+            xml.enabled = false
+            html {
+                enabled = true
+                stylesheet = 'fancy-hist.xsl'
+                destination file("$project.buildDir/reports/spotbugs/spotbugs-output.html")
+            }
+        }
+    }
+}
+
+pmd {
+    toolVersion = "6.29.0"
+    ignoreFailures = false
+    sourceSets = [sourceSets.main]
+    ruleSetFiles = files("${rootDir}/gradle-common/config/pmd/ruleset.xml")
+    ruleSets = [] //This is needed as I want to exclude errorProne rules, as gradle 5.0 has errorProne in the default list .
+    //rulePriority = 2 // This needs to be increased , the max value is 5.
+}
+
+dependencies {
+    spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.12.0'
+}

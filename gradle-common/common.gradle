@@ -1,0 +1,15 @@
+apply plugin: 'java'
+
+dependencies {
+    //common dependencies
+    compileOnly group: 'org.projectlombok', name: 'lombok', version: rev_lombok
+    compileOnly group: 'org.springframework.boot', name: 'spring-boot-configuration-processor', version: rev_springboot
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: rev_apache_common_lib
+
+    //annotationProcessors
+    annotationProcessor "org.projectlombok:lombok:${rev_lombok}"
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:2.4.2'
+
+    testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: rev_springboot
+}
+

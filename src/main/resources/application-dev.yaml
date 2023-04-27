@@ -1,0 +1,15 @@
+# todo add this section to prod config
+server:
+  ssl:
+    #    enabled: false
+    enabled: true
+    protocol: TLS
+    keyStore: classpath:ssl/Bff-app-keystore.p12
+    keyStoreType: PKCS12
+    keyStoreProvider: SunJSSE
+    keyStorePassword: 033CApkPASSbff1987
+
+
+spring:
+  security:
+    oauth2:
