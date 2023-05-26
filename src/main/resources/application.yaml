@@ -1,4 +1,80 @@
-#add https support
-server:
-  port: 8200
+logging:
+  level:
+    ROOT: ERROR
+    org.springframework: INFO
+    org.springframework.data: INFO
+    com.verbitsky: DEBUG
+    com.netflix.eureka: info
+    com.netflix.discovery: info
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/dev/backend.log
+  logback:
+    rollingpolicy:
+      file-name-pattern: logs/dev/application-dev-%d{yyyy-MM-dd}_part.%i.log
+      max-file-size: 512KB
+      max-history: 3
+      clean-history-on-start: true
+
+spring:
+  application:
+    name: bff-application
+  profiles:
+    #change it to prod to run in production mode
+    active: dev
+  config:
+    import: "configserver:${CONFIG_SERVER_ADDR}"
+
+#spring:
+#  security:
+#    oauth2:
+#      #      resource-server:
+#      #        jwt:
+#      #          jwk-set-uri: https://mykeycloak:9443/realms/dog_app_realm/protocol/openid-connect/certs
+#      #          issuer-uri: https://mykeycloak:9443/realms/dog_app_realm
+#      client:
+#        provider:
+#          keycloak:
+#            issuer-uri: https://mykeycloak:9443/realms/dog_app_realm
+#            user-name-attribute: bff_application
+#            token-uri: https://mykeycloak:9443/realms/dog_app_realm/protocol/openid-connect/token
+#            authorization-uri: https://mykeycloak:9443/realms/dog_app_realm/protocol/openid-connect/auth
+#            user-info-uri: https://mykeycloak:9443/realms/dog_app_realm/protocol/openid-connect/userinfo
+#            user-info-authentication-method: header
+#        registration:
+#          keycloak:
+#            client-id: dog_app_client
+#            client-secret: M8zadEYO3pQtcY8OXpO3GgRDKy8De8PO
+#            client-name: "Login with keycloak"
+#            provider: keycloak
+#            scope: profile,email
+#            clientAuthenticationMethod: client_secret_basic
+#            authorization-grant-type: authorization_code
+#            redirect-uri: http://localhost:3000
+#
+#server:
+#  port: 0
+#  servlet:
+#    context-path: /api
+#  ssl:
+#    enabled: true
+#    protocol: TLS
+#    keyStore: classpath:ssl/Server-keystore.p12
+#    keyStoreType: PKCS12
+#    keyStoreProvider: SunJSSE
+#    keyStorePassword: 033CApkPASSserver1987
+#
+#token-cache:
+#  record-ttl: 31
+#  initial-size: 32
+#  max-size: 500
+#  concurrency-level: 8
+#
+#http-client:
+#  connection-timeout: 5000
+#  response-timeout: 2000
+#  read-timeout: 2000
+#  write-timeout: 2000
 
