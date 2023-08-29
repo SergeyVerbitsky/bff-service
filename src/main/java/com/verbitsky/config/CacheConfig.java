@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.verbitsky.model.UserModel;
+import com.verbitsky.security.CustomUserDetails;
 import com.verbitsky.property.TokenCacheProperties;
 
 @Configuration
@@ -21,7 +21,7 @@ public class CacheConfig {
     }
 
     @Bean("tokenCache")
-    public Cache<String, UserModel> tokenCache() {
+    public Cache<String, CustomUserDetails> tokenCache() {
         return CacheBuilder.newBuilder()
                 .initialCapacity(cacheProperties.initialSize())
                 .expireAfterWrite(cacheProperties.recordTtl(), TimeUnit.MINUTES)

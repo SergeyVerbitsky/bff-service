@@ -1,95 +1,149 @@
 package com.verbitsky.service.auth;
 
-import org.apache.commons.lang3.StringUtils;
-
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-
-import java.util.Map;
-import java.util.Objects;
-import java.util.function.Consumer;
-
-import static com.verbitsky.keycloak.request.KeycloakFields.TOKEN;
 import com.google.common.cache.Cache;
-import com.verbitsky.converter.KeycloakResponseConverter;
-import com.verbitsky.exception.InvalidKeycloakRequest;
-import com.verbitsky.keycloak.client.KeycloakAction;
-import com.verbitsky.keycloak.client.KeycloakClient;
-import com.verbitsky.keycloak.request.KeycloakRequest;
-import com.verbitsky.keycloak.request.KeycloakRequestFactory;
-import com.verbitsky.keycloak.response.KeycloakIntrospectResponse;
-import com.verbitsky.keycloak.response.KeycloakLogoutResponse;
-import com.verbitsky.keycloak.response.KeycloakTokenResponse;
-import com.verbitsky.keycloak.response.KeycloakUserInfoResponse;
+import com.verbitsky.exception.AuthException;
+import com.verbitsky.keycloak.KeycloakService;
+import com.verbitsky.keycloak.response.KeycloakLoginResponse;
 import com.verbitsky.model.ApiLoginRequest;
-import com.verbitsky.model.UserModel;
+import com.verbitsky.model.ApiLoginResponse;
+import com.verbitsky.model.ApiRegisterRequest;
+import com.verbitsky.security.CustomOAuth2TokenAuthentication;
+import com.verbitsky.security.CustomUserDetails;
+import com.verbitsky.security.TokenDataProvider;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static com.verbitsky.security.CustomOAuth2TokenAuthentication.authenticationFromUserDetails;
+
 @Service
-public class AuthServiceImpl {
-    private final KeycloakClient keycloakClient;
-    private final KeycloakRequestFactory requestFactory;
-    private final KeycloakResponseConverter<KeycloakIntrospectResponse, UserModel> introspectResponseConverter;
-    private final Cache<String, UserModel> tokenCache;
+@Slf4j
+public class AuthServiceImpl implements AuthService {
+    private final KeycloakService keycloakService;
+    private final AtomicReference<Cache<String, CustomUserDetails>> userCache;
+    private final TokenDataProvider tokenDataProvider;
+    private final AuthenticationManager authenticationManager;
 
-    public AuthServiceImpl(KeycloakClient keycloakClient, KeycloakRequestFactory requestBuilder,
-                           KeycloakResponseConverter<KeycloakIntrospectResponse, UserModel> converter,
-                           @Qualifier("tokenCache") Cache<String, UserModel> tokenCache) {
-        this.keycloakClient = keycloakClient;
-        this.requestFactory = requestBuilder;
-        this.introspectResponseConverter = converter;
-        this.tokenCache = tokenCache;
+    public AuthServiceImpl(@Qualifier("tokenCache") Cache<String, CustomUserDetails> tokenCache,
+                           KeycloakService keycloakService, TokenDataProvider tokenDataProvider,
+                           AuthenticationManager authenticationManager) {
+
+        this.keycloakService = keycloakService;
+        this.userCache = new AtomicReference<>(tokenCache);
+        this.tokenDataProvider = tokenDataProvider;
+        this.authenticationManager = authenticationManager;
     }
 
-    public Mono<KeycloakTokenResponse> processLogin(ApiLoginRequest loginRequest) {
-        // TODO: 17.05.2023 mb need to check if user already logged in
-        KeycloakRequest request = requestFactory.buildLoginRequest(loginRequest);
-        return keycloakClient
-                .post(request, KeycloakTokenResponse.class)
-                .doOnNext(addLoggedUserToCache());
-
-
+    @Override
+    public CustomUserDetails getUserById(String id) {
+        return null;
     }
 
-    public Mono<KeycloakIntrospectResponse> introspectToken(String token) {
-        if (StringUtils.isBlank(token)) {
-            throw new InvalidKeycloakRequest(HttpStatus.BAD_REQUEST, KeycloakAction.LOGIN, "Null or empty token");
+    @Override
+    public Mono<ApiLoginResponse> processLoginUser(ApiLoginRequest loginRequest) {
+        return keycloakService
+                .processLogin(loginRequest.userName(), loginRequest.password())
+                .map(this::processKeycloakLoginResponse)
+                .map(userDetails -> new ApiLoginResponse(userDetails.getUserId(), userDetails.getSessionId()));
+    }
+
+    @Override
+    public void processUserLogout(String userId) {
+        invalidateSession(userId);
+        //todo remove from db
+    }
+
+    @Override
+    public void processUserRegistration(ApiRegisterRequest registerRequest) {
+        //todo implement this
+    }
+
+    @Override
+    public CustomOAuth2TokenAuthentication resolveAuthentication(String userId, String sessionId) {
+        return authenticationFromUserDetails(getModelFromStorage(userId, sessionId));
+    }
+
+    private boolean isSessionIdValid(String storedSessionId, String receivedSessionId) {
+        return StringUtils.isNotBlank(receivedSessionId) && receivedSessionId.equals(storedSessionId);
+    }
+
+    private CustomUserDetails getModelFromStorage(String userId, String sessionId) {
+        Optional<CustomUserDetails> userFromCache = getUserFromCache(userId, sessionId);
+        return userFromCache.orElseGet(() -> getUserFromDb(userId, sessionId));
+    }
+
+    private Optional<CustomUserDetails> getUserFromCache(String userId, String sessionId) {
+        var userDetails = userCache.get().getIfPresent(userId);
+        if (Objects.nonNull(userDetails) && isSessionIdValid(userDetails.getSessionId(), sessionId)) {
+
+            if (tokenDataProvider.isTokenValid(userDetails.getJwt())) {
+                return Optional.of(userDetails);
+            }
+            String refreshToken = userDetails.getRefreshToken();
+            if (tokenDataProvider.isTokenValid(refreshToken)) {
+                return Optional.of(processRefreshToken(refreshToken).block());
+
+            }
         }
-        KeycloakRequest request = requestFactory.buildTokenIntrospectionRequest(token);
-        return keycloakClient.post(request, KeycloakIntrospectResponse.class);
+
+        return Optional.empty();
     }
 
-    public Mono<KeycloakUserInfoResponse> getUserInfo(String token) {
-        if (StringUtils.isBlank(token)) {
-            throw new InvalidKeycloakRequest(HttpStatus.BAD_REQUEST, KeycloakAction.LOGIN, "Null or empty token");
+    private CustomUserDetails getUserFromDb(String userId, String sessionId) {
+        //todo add db search (get from backend app)
+        log.warn("Requested session id ({}) of user ({}) wasn't found", sessionId, userId);
+        throw new AuthException("get from db is not implemented");
+    }
+
+    private Mono<CustomUserDetails> processRefreshToken(String refreshToken) {
+        if (tokenDataProvider.isTokenValid(refreshToken)) {
+            return keycloakService.processRefreshToken(refreshToken)
+                    .map(this::processKeycloakLoginResponse);
         }
-        KeycloakRequest request = requestFactory.buildUserInfoRequest(token);
-        return keycloakClient.get(request, KeycloakUserInfoResponse.class);
+
+        throw new AuthException("Couldn't process refresh token and ");
     }
 
-    public Mono<KeycloakLogoutResponse> processLogout(String userSub) {
-        KeycloakRequest request = requestFactory.buildLogoutRequest(userSub);
-        return keycloakClient.post(request, KeycloakLogoutResponse.class)
-                .doOnNext(response ->
-                    removeLoggedUserFromCache(userSub));
-    }
-
-    private void removeLoggedUserFromCache(String userId) {
-        UserModel userModel = tokenCache.getIfPresent(userId);
-        if (Objects.nonNull(userModel)) {
-            tokenCache.invalidate(userId);
+    private CustomUserDetails processKeycloakLoginResponse(KeycloakLoginResponse response) {
+        try {
+            var userDetails = buildUserDetails(response.getAccessToken(), response.getRefreshToken());
+            saveUserDetails(userDetails);
+            authenticationManager.authenticate(authenticationFromUserDetails(userDetails));
+            return userDetails;
+        } catch (Exception e) {
+            throw new AuthException("KeycloakLoginResponse processing error: " + e.getMessage());
         }
     }
 
-    private Consumer<? super KeycloakTokenResponse> addLoggedUserToCache() {
-        return loginResponse ->
-                introspectToken(loginResponse.getAccessToken()).subscribe(
-                        introspectResponse -> {
-                            UserModel userModel = introspectResponseConverter
-                                    .convert(introspectResponse, Map.of(TOKEN, loginResponse.getAccessToken()));
-                            userModel.setToken(loginResponse.getAccessToken());
-                            tokenCache.put(introspectResponse.getUserName(), userModel);
-                        });
+    private CustomUserDetails buildUserDetails(String accessToken, String refreshToken)
+            throws ParseException, IOException {
+
+        var tokenParams = tokenDataProvider.getParametersFromToken(accessToken);
+        var userAuthorities = tokenDataProvider.getGrantedAuthorities(accessToken);
+        var jwt = tokenDataProvider.buildJwt(accessToken, tokenParams);
+
+        return new CustomUserDetails(refreshToken, jwt, userAuthorities);
+    }
+
+    private void saveUserDetails(CustomUserDetails userDetails) {
+        userCache.get().put(userDetails.getUserId(), userDetails);
+        //todo impl repo to save
+    }
+
+    private void invalidateSession(String userId) {
+        var customUserDetails = userCache.get().getIfPresent(userId);
+        if (Objects.nonNull(customUserDetails)) {
+            userCache.get().invalidate(userId);
+        }
+        //todo remove from db (and keycloak?)
     }
 }

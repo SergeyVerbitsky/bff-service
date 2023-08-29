@@ -15,6 +15,7 @@ public final class JsonUtil {
         String errorDescription;
         try {
             JSONObject jsonObject = new JSONObject(errorResponseBody);
+            //Todo иногда тут просто error без описания
             errorDescription = jsonObject.get("error_description").toString();
 
         } catch (Exception e) {

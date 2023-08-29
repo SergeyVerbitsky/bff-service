@@ -1,22 +1,14 @@
 package com.verbitsky.keycloak.request;
 
+import com.verbitsky.keycloak.client.KeycloakAction;
+import com.verbitsky.property.KeycloakPropertyProvider;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import static com.verbitsky.keycloak.request.KeycloakFields.BEARER_VALUE;
-import static com.verbitsky.keycloak.request.KeycloakFields.CLIENT_ID_FIELD;
-import static com.verbitsky.keycloak.request.KeycloakFields.CLIENT_SECRET_FIELD;
-import static com.verbitsky.keycloak.request.KeycloakFields.GRANT_TYPE_KEY;
-import static com.verbitsky.keycloak.request.KeycloakFields.GRANT_TYPE_PASSWORD;
-import static com.verbitsky.keycloak.request.KeycloakFields.PASSWORD;
-import static com.verbitsky.keycloak.request.KeycloakFields.TOKEN;
-import static com.verbitsky.keycloak.request.KeycloakFields.USER_NAME;
-import com.verbitsky.keycloak.client.KeycloakAction;
-import com.verbitsky.model.ApiLoginRequest;
-import com.verbitsky.property.KeycloakPropertyProvider;
+import static com.verbitsky.keycloak.request.KeycloakFields.*;
 
 @Component
 public class KeycloakRequestFactory {
@@ -26,12 +18,12 @@ public class KeycloakRequestFactory {
         this.keycloakPropertyProvider = propertyProvider;
     }
 
-    public KeycloakRequest buildLoginRequest(ApiLoginRequest loginRequest) {
+    public KeycloakRequest buildLoginRequest(String userName, String password) {
         KeycloakRequest request = new KeycloakRequest();
         request.setAction(KeycloakAction.LOGIN);
         request.setEndpointUrl(keycloakPropertyProvider.provideTokenUri());
         request.setHeaders(buildContentTypeHeaderFormUrlencoded());
-        request.setRequestFields(buildLoginRequestFields(loginRequest));
+        request.setRequestFields(buildLoginRequestFields(userName, password));
 
         return request;
     }
@@ -42,6 +34,16 @@ public class KeycloakRequestFactory {
         request.setEndpointUrl(keycloakPropertyProvider.provideIntrospectionUri());
         request.setHeaders(buildContentTypeHeaderFormUrlencoded());
         request.setRequestFields(buildTokenIntrospectionRequestFields(token));
+
+        return request;
+    }
+
+    public KeycloakRequest buildRefreshTokenRequest(String token) {
+        KeycloakRequest request = new KeycloakRequest();
+        request.setAction(KeycloakAction.TOKEN_REFRESH);
+        request.setEndpointUrl(keycloakPropertyProvider.provideTokenUri());
+        request.setHeaders(buildContentTypeHeaderFormUrlencoded());
+        request.setRequestFields(buildRefreshTokenRequestFields(token));
 
         return request;
     }
@@ -65,11 +67,20 @@ public class KeycloakRequestFactory {
         return request;
     }
 
-    private MultiValueMap<String, String> buildLoginRequestFields(ApiLoginRequest loginRequest) {
+    private LinkedMultiValueMap<String, String> buildRefreshTokenRequestFields(String refreshToken) {
+        LinkedMultiValueMap<String, String> fields = new LinkedMultiValueMap<>();
+        fields.addAll(buildRequestSecretFields());
+        fields.add(GRANT_TYPE_KEY, REFRESH_TOKEN);
+        fields.add(REFRESH_TOKEN, refreshToken);
+
+        return fields;
+    }
+
+    private MultiValueMap<String, String> buildLoginRequestFields(String userName, String password) {
         LinkedMultiValueMap<String, String> fieldsMap = new LinkedMultiValueMap<>();
         fieldsMap.add(GRANT_TYPE_KEY, GRANT_TYPE_PASSWORD);
-        fieldsMap.add(USER_NAME, loginRequest.userName());
-        fieldsMap.add(PASSWORD, loginRequest.password());
+        fieldsMap.add(USER_NAME, userName);
+        fieldsMap.add(PASSWORD, password);
         fieldsMap.addAll(buildRequestSecretFields());
 
         return fieldsMap;
@@ -99,8 +110,8 @@ public class KeycloakRequestFactory {
 
     private MultiValueMap<String, String> buildUserInfoRequestHeaders(String token) {
         LinkedMultiValueMap<String, String> headerMap = new LinkedMultiValueMap<>(2);
-        headerMap.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE);
         headerMap.add(HttpHeaders.AUTHORIZATION, BEARER_VALUE.concat(token));
+        headerMap.addAll(buildContentTypeHeaderFormUrlencoded());
         return headerMap;
     }
 }

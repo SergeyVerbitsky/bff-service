@@ -1,20 +1,19 @@
 package com.verbitsky.keycloak.client;
 
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
-import java.util.function.Function;
-
-import com.verbitsky.exception.InvalidKeycloakRequest;
+import com.verbitsky.keycloak.exception.InvalidKeycloakRequestException;
 import com.verbitsky.keycloak.request.KeycloakRequest;
 import com.verbitsky.keycloak.response.KeycloakAbstractResponse;
 import com.verbitsky.util.JsonUtil;
-import reactor.core.publisher.Mono;
+
+import java.util.function.Function;
 
 @Slf4j
 @Component
@@ -35,7 +34,7 @@ public class KeycloakClient {
                 .onStatus(HttpStatusCode::isError, errorProcessingFunction(request.getAction()))
                 .bodyToMono(responseClass)
 //                .doOnSuccess(response -> log.info(
-//                        // TODO: 16.05.2023 hide secret values and password
+                       // TODO: 16.05.2023 hide secret values and password
 //                        "Processed successfully: Action: {}, fields: {}, headers: {}",
 //                        request.getAction(), request.getRequestFields(), request.getHeaders()))
                 .doOnError(throwable -> log.error(throwable.getMessage()));
@@ -59,7 +58,7 @@ public class KeycloakClient {
         return clientResponse -> clientResponse.body((inputMessage, context) ->
                 clientResponse.bodyToMono(String.class)
                         .map(JsonUtil::extractErrorDescription)
-                        .map(body -> new InvalidKeycloakRequest(
+                        .map(body -> new InvalidKeycloakRequestException(
                                 inputMessage.getStatusCode(), action, body)));
     }
 }

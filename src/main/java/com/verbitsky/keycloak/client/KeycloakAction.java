@@ -2,6 +2,7 @@ package com.verbitsky.keycloak.client;
 
 public enum KeycloakAction {
     TOKEN_INTROSPECTION,
+    TOKEN_REFRESH,
     LOGIN,
     LOGOUT,
     REGISTRATION,

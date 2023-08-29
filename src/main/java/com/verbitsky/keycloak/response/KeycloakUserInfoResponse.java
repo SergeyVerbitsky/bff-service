@@ -22,4 +22,8 @@ public class KeycloakUserInfoResponse extends KeycloakAbstractResponse {
     private String email;
     @JsonProperty("email_verified")
     private boolean emailVerified;
+    private boolean credentialsNonExpired;
+    private boolean accountNonLocked;
+    private boolean accountNonExpired;
+    private boolean enabled;
 }
