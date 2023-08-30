@@ -27,6 +27,14 @@ spring:
   config:
     import: "configserver:${CONFIG_SERVER_ADDR}"
 
+#todo move to vault
+backend-service:
+  scheme: https
+  host: localhost
+  port: 8443
+  endpoint-map:
+    get-user-session: "backend/api/users/{userId}/session}"
+
 #spring:
 #  security:
 #    oauth2:

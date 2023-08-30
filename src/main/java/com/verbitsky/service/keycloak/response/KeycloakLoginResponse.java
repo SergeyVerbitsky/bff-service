@@ -1,11 +1,10 @@
-package com.verbitsky.keycloak.response;
+package com.verbitsky.service.keycloak.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.Getter;
-import lombok.Setter;
-
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter

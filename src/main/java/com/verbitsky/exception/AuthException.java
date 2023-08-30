@@ -6,7 +6,7 @@ import org.springframework.security.core.AuthenticationException;
 
 import java.io.Serial;
 
-//todo rename class
+//todo refactor rename class
 public class AuthException extends AuthenticationException {
     @Serial
     private static final long serialVersionUID = -246425056301051639L;
@@ -15,6 +15,11 @@ public class AuthException extends AuthenticationException {
 
     public AuthException(String message, HttpStatus status) {
         super(message);
+        this.httpStatus = status;
+    }
+
+    public AuthException(String message, Exception exception, HttpStatus status) {
+        super(message, exception);
         this.httpStatus = status;
     }
 

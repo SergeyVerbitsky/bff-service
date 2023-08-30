@@ -1,6 +1,6 @@
 package com.verbitsky.model;
 
-public record ApiLoginResponse(
+public record BffLoginResponse(
         String userId,
         String sessionId) {
 }

@@ -1,68 +1,56 @@
-package com.verbitsky.keycloak.request;
+package com.verbitsky.service.keycloak.request;
 
-import com.verbitsky.keycloak.client.KeycloakAction;
 import com.verbitsky.property.KeycloakPropertyProvider;
+import com.verbitsky.service.RemoteApiRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import static com.verbitsky.keycloak.request.KeycloakFields.*;
-
 @Component
-public class KeycloakRequestFactory {
+public final class KeycloakRequestFactory {
     private final KeycloakPropertyProvider keycloakPropertyProvider;
 
     public KeycloakRequestFactory(KeycloakPropertyProvider propertyProvider) {
         this.keycloakPropertyProvider = propertyProvider;
     }
 
-    public KeycloakRequest buildLoginRequest(String userName, String password) {
-        KeycloakRequest request = new KeycloakRequest();
-        request.setAction(KeycloakAction.LOGIN);
-        request.setEndpointUrl(keycloakPropertyProvider.provideTokenUri());
-        request.setHeaders(buildContentTypeHeaderFormUrlencoded());
+    public RemoteApiRequest buildLoginRequest(String userName, String password) {
+        RemoteApiRequest request = new RemoteApiRequest(keycloakPropertyProvider.provideTokenUri());
+        request.setRequestHeaders(buildContentTypeHeaderFormUrlencoded());
         request.setRequestFields(buildLoginRequestFields(userName, password));
 
         return request;
     }
 
-    public KeycloakRequest buildTokenIntrospectionRequest(String token) {
-        KeycloakRequest request = new KeycloakRequest();
-        request.setAction(KeycloakAction.TOKEN_INTROSPECTION);
-        request.setEndpointUrl(keycloakPropertyProvider.provideIntrospectionUri());
-        request.setHeaders(buildContentTypeHeaderFormUrlencoded());
+    public RemoteApiRequest buildTokenIntrospectionRequest(String token) {
+        RemoteApiRequest request = new RemoteApiRequest(keycloakPropertyProvider.provideIntrospectionUri());
+        request.setRequestHeaders(buildContentTypeHeaderFormUrlencoded());
         request.setRequestFields(buildTokenIntrospectionRequestFields(token));
 
         return request;
     }
 
-    public KeycloakRequest buildRefreshTokenRequest(String token) {
-        KeycloakRequest request = new KeycloakRequest();
-        request.setAction(KeycloakAction.TOKEN_REFRESH);
-        request.setEndpointUrl(keycloakPropertyProvider.provideTokenUri());
-        request.setHeaders(buildContentTypeHeaderFormUrlencoded());
+    public RemoteApiRequest buildRefreshTokenRequest(String token) {
+        RemoteApiRequest request = new RemoteApiRequest(keycloakPropertyProvider.provideTokenUri());
+        request.setRequestHeaders(buildContentTypeHeaderFormUrlencoded());
         request.setRequestFields(buildRefreshTokenRequestFields(token));
 
         return request;
     }
 
-    public KeycloakRequest buildUserInfoRequest(String token) {
-        KeycloakRequest request = new KeycloakRequest();
-        request.setAction(KeycloakAction.USER_INFO);
-        request.setEndpointUrl(keycloakPropertyProvider.provideUserInfoUri());
-        request.setHeaders(buildUserInfoRequestHeaders(token));
+    public RemoteApiRequest buildUserInfoRequest(String token) {
+        RemoteApiRequest request = new RemoteApiRequest(keycloakPropertyProvider.provideUserInfoUri());
+        request.setRequestHeaders(buildUserInfoRequestHeaders(token));
 
         return request;
     }
 
-    public KeycloakRequest buildLogoutRequest(String userId) {
-        KeycloakRequest request = new KeycloakRequest();
-        request.setAction(KeycloakAction.LOGOUT);
-        request.setEndpointUrl(String.format(keycloakPropertyProvider.provideUserLogoutUri(), userId));
+    public RemoteApiRequest buildLogoutRequest(String userId) {
+        RemoteApiRequest request = new RemoteApiRequest(keycloakPropertyProvider.provideUserLogoutUri(userId));
         request.setRequestFields(buildRequestSecretFields());
-        request.setHeaders(buildContentTypeHeaderFormUrlencoded());
+        request.setRequestHeaders(buildContentTypeHeaderFormUrlencoded());
 
         return request;
     }
@@ -70,17 +58,17 @@ public class KeycloakRequestFactory {
     private LinkedMultiValueMap<String, String> buildRefreshTokenRequestFields(String refreshToken) {
         LinkedMultiValueMap<String, String> fields = new LinkedMultiValueMap<>();
         fields.addAll(buildRequestSecretFields());
-        fields.add(GRANT_TYPE_KEY, REFRESH_TOKEN);
-        fields.add(REFRESH_TOKEN, refreshToken);
+        fields.add(KeycloakFields.GRANT_TYPE_KEY, KeycloakFields.REFRESH_TOKEN);
+        fields.add(KeycloakFields.REFRESH_TOKEN, refreshToken);
 
         return fields;
     }
 
     private MultiValueMap<String, String> buildLoginRequestFields(String userName, String password) {
         LinkedMultiValueMap<String, String> fieldsMap = new LinkedMultiValueMap<>();
-        fieldsMap.add(GRANT_TYPE_KEY, GRANT_TYPE_PASSWORD);
-        fieldsMap.add(USER_NAME, userName);
-        fieldsMap.add(PASSWORD, password);
+        fieldsMap.add(KeycloakFields.GRANT_TYPE_KEY, KeycloakFields.GRANT_TYPE_PASSWORD);
+        fieldsMap.add(KeycloakFields.USER_NAME, userName);
+        fieldsMap.add(KeycloakFields.PASSWORD, password);
         fieldsMap.addAll(buildRequestSecretFields());
 
         return fieldsMap;
@@ -88,7 +76,7 @@ public class KeycloakRequestFactory {
 
     private MultiValueMap<String, String> buildTokenIntrospectionRequestFields(String token) {
         LinkedMultiValueMap<String, String> fieldsMap = new LinkedMultiValueMap<>();
-        fieldsMap.add(TOKEN, token);
+        fieldsMap.add(KeycloakFields.TOKEN, token);
         fieldsMap.addAll(buildRequestSecretFields());
 
         return fieldsMap;
@@ -96,8 +84,8 @@ public class KeycloakRequestFactory {
 
     private MultiValueMap<String, String> buildRequestSecretFields() {
         LinkedMultiValueMap<String, String> fieldsMap = new LinkedMultiValueMap<>();
-        fieldsMap.add(CLIENT_ID_FIELD, keycloakPropertyProvider.provideClientId());
-        fieldsMap.add(CLIENT_SECRET_FIELD, keycloakPropertyProvider.provideClientSecret());
+        fieldsMap.add(KeycloakFields.CLIENT_ID_FIELD, keycloakPropertyProvider.provideClientId());
+        fieldsMap.add(KeycloakFields.CLIENT_SECRET_FIELD, keycloakPropertyProvider.provideClientSecret());
 
         return fieldsMap;
     }
@@ -110,7 +98,7 @@ public class KeycloakRequestFactory {
 
     private MultiValueMap<String, String> buildUserInfoRequestHeaders(String token) {
         LinkedMultiValueMap<String, String> headerMap = new LinkedMultiValueMap<>(2);
-        headerMap.add(HttpHeaders.AUTHORIZATION, BEARER_VALUE.concat(token));
+        headerMap.add(HttpHeaders.AUTHORIZATION, KeycloakFields.BEARER_VALUE.concat(token));
         headerMap.addAll(buildContentTypeHeaderFormUrlencoded());
         return headerMap;
     }

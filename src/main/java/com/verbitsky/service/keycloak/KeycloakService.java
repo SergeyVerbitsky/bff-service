@@ -1,9 +1,9 @@
-package com.verbitsky.keycloak;
+package com.verbitsky.service.keycloak;
 
-import com.verbitsky.keycloak.response.KeycloakIntrospectResponse;
-import com.verbitsky.keycloak.response.KeycloakLoginResponse;
-import com.verbitsky.keycloak.response.KeycloakLogoutResponse;
-import com.verbitsky.keycloak.response.KeycloakUserInfoResponse;
+import com.verbitsky.service.keycloak.response.KeycloakIntrospectResponse;
+import com.verbitsky.service.keycloak.response.KeycloakLoginResponse;
+import com.verbitsky.service.keycloak.response.KeycloakLogoutResponse;
+import com.verbitsky.service.keycloak.response.KeycloakUserInfoResponse;
 import reactor.core.publisher.Mono;
 
 public interface KeycloakService {

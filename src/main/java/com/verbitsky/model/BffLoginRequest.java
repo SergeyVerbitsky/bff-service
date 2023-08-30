@@ -1,6 +1,6 @@
 package com.verbitsky.model;
 
-public record ApiLoginRequest(
+public record BffLoginRequest(
         String userName,
         String password) {
 }

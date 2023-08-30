@@ -1,10 +1,11 @@
-package com.verbitsky.keycloak.response;
+package com.verbitsky.service.keycloak.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.verbitsky.service.AbstractApiResponse;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +18,7 @@ import java.util.List;
 @Getter
 @Setter
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class KeycloakIntrospectResponse extends KeycloakAbstractResponse {
+public class KeycloakIntrospectResponse extends AbstractApiResponse {
     private boolean active;
     private long exp;
     @JsonProperty("username")

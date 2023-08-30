@@ -1,4 +1,4 @@
-package com.verbitsky.keycloak.request;
+package com.verbitsky.service.keycloak.request;
 
 public final class KeycloakFields {
     public static final String BEARER_VALUE = "Bearer ";

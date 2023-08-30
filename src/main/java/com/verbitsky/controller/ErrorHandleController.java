@@ -1,8 +1,8 @@
 package com.verbitsky.controller;
 
 
-import com.verbitsky.keycloak.exception.InvalidKeycloakRequestException;
-import com.verbitsky.keycloak.client.ErrorMessage;
+import com.verbitsky.service.keycloak.client.ErrorMessage;
+import com.verbitsky.service.keycloak.exception.InvalidKeycloakRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;

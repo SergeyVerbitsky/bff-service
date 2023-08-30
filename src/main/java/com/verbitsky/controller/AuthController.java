@@ -1,7 +1,7 @@
 package com.verbitsky.controller;
 
-import com.verbitsky.model.ApiLoginRequest;
-import com.verbitsky.model.ApiLoginResponse;
+import com.verbitsky.model.BffLoginRequest;
+import com.verbitsky.model.BffLoginResponse;
 import com.verbitsky.service.auth.AuthService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,7 +21,7 @@ class AuthController {
     }
 
     @PostMapping("/login")
-    Mono<ApiLoginResponse> processLogin(@RequestBody ApiLoginRequest loginRequest) {
+    Mono<BffLoginResponse> processLogin(@RequestBody BffLoginRequest loginRequest) {
         return userService.processLoginUser(loginRequest);
     }
 

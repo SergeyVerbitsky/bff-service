@@ -1,4 +1,4 @@
-package com.verbitsky.keycloak.client;
+package com.verbitsky.service.keycloak.client;
 
 public enum KeycloakAction {
     TOKEN_INTROSPECTION,

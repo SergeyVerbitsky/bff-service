@@ -1,6 +1,6 @@
-package com.verbitsky.keycloak.exception;
+package com.verbitsky.service.keycloak.exception;
 
-import com.verbitsky.keycloak.client.KeycloakAction;
+import com.verbitsky.service.keycloak.client.KeycloakAction;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.http.HttpStatusCode;
