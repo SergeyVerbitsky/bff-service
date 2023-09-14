@@ -1,11 +1,12 @@
 package com.verbitsky.security;
 
-import com.verbitsky.exception.AuthException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Component;
+
+import com.verbitsky.exception.AuthException;
 
 import java.util.Objects;
 

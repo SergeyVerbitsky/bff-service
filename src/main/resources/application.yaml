@@ -2,6 +2,7 @@ logging:
   level:
     ROOT: ERROR
     org.springframework: INFO
+    org.springframework.security: TRACE
     org.springframework.data: INFO
     com.verbitsky: DEBUG
     com.netflix.eureka: info
@@ -33,7 +34,7 @@ backend-service:
   host: localhost
   port: 8443
   endpoint-map:
-    get-user-session: "backend/api/users/{userId}/session}"
+    userSession: "backend/api/users/{userId}/session"
 
 #spring:
 #  security:

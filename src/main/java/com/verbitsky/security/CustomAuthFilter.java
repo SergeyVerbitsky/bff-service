@@ -1,17 +1,21 @@
 package com.verbitsky.security;
 
-import com.verbitsky.exception.AuthException;
-import com.verbitsky.service.auth.AuthService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import org.apache.commons.lang3.StringUtils;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.GenericFilterBean;
+
+import com.verbitsky.exception.AuthException;
+import com.verbitsky.service.auth.AuthService;
 
 import java.io.IOException;
 
@@ -47,7 +51,7 @@ public class CustomAuthFilter extends GenericFilterBean {
         } catch (AuthException exception) {
             SecurityContextHolder.clearContext();
             ((HttpServletResponse) response).sendError(exception.getHttpStatus().value());
-            throw new AuthException("Token is not valid or expired");
+            throw new AuthException("Token is not valid or expired", HttpStatus.FORBIDDEN);
         }
     }
 }

@@ -5,12 +5,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.verbitsky.service.AbstractApiResponse;
+
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,7 +19,9 @@ import java.util.List;
 @Getter
 @Setter
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class KeycloakIntrospectResponse extends AbstractApiResponse {
+public class KeycloakIntrospectResponse extends KeycloakAbstractResponse {
+    @Serial
+    private static final long serialVersionUID = 3503567850506969737L;
     private boolean active;
     private long exp;
     @JsonProperty("username")

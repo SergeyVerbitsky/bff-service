@@ -1,12 +1,14 @@
 package com.verbitsky.service.keycloak.request;
 
-import com.verbitsky.property.KeycloakPropertyProvider;
-import com.verbitsky.service.RemoteApiRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
+
+import com.verbitsky.property.KeycloakPropertyProvider;
+import com.verbitsky.service.RemoteApiRequest;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 public final class KeycloakRequestFactory {
@@ -17,89 +19,78 @@ public final class KeycloakRequestFactory {
     }
 
     public RemoteApiRequest buildLoginRequest(String userName, String password) {
-        RemoteApiRequest request = new RemoteApiRequest(keycloakPropertyProvider.provideTokenUri());
-        request.setRequestHeaders(buildContentTypeHeaderFormUrlencoded());
-        request.setRequestFields(buildLoginRequestFields(userName, password));
-
-        return request;
+        return new RemoteApiRequest(keycloakPropertyProvider.provideTokenUri(),
+                buildContentTypeHeaderFormUrlencoded(), buildLoginRequestFields(userName, password));
     }
 
     public RemoteApiRequest buildTokenIntrospectionRequest(String token) {
-        RemoteApiRequest request = new RemoteApiRequest(keycloakPropertyProvider.provideIntrospectionUri());
-        request.setRequestHeaders(buildContentTypeHeaderFormUrlencoded());
-        request.setRequestFields(buildTokenIntrospectionRequestFields(token));
-
-        return request;
+        return new RemoteApiRequest(keycloakPropertyProvider.provideIntrospectionUri(),
+                buildContentTypeHeaderFormUrlencoded(), buildTokenIntrospectionRequestFields(token));
     }
 
     public RemoteApiRequest buildRefreshTokenRequest(String token) {
-        RemoteApiRequest request = new RemoteApiRequest(keycloakPropertyProvider.provideTokenUri());
-        request.setRequestHeaders(buildContentTypeHeaderFormUrlencoded());
-        request.setRequestFields(buildRefreshTokenRequestFields(token));
-
-        return request;
+        return new RemoteApiRequest(keycloakPropertyProvider.provideTokenUri(),
+                buildContentTypeHeaderFormUrlencoded(), buildRefreshTokenRequestFields(token));
     }
 
     public RemoteApiRequest buildUserInfoRequest(String token) {
-        RemoteApiRequest request = new RemoteApiRequest(keycloakPropertyProvider.provideUserInfoUri());
-        request.setRequestHeaders(buildUserInfoRequestHeaders(token));
-
-        return request;
+        return new RemoteApiRequest(keycloakPropertyProvider.provideUserInfoUri(),
+                buildUserInfoRequestHeaders(token), new HashMap<>());
     }
 
     public RemoteApiRequest buildLogoutRequest(String userId) {
-        RemoteApiRequest request = new RemoteApiRequest(keycloakPropertyProvider.provideUserLogoutUri(userId));
-        request.setRequestFields(buildRequestSecretFields());
-        request.setRequestHeaders(buildContentTypeHeaderFormUrlencoded());
-
-        return request;
+        return new RemoteApiRequest(keycloakPropertyProvider.provideUserLogoutUri(userId),
+                buildContentTypeHeaderFormUrlencoded(), buildRequestSecretFields());
     }
 
-    private LinkedMultiValueMap<String, String> buildRefreshTokenRequestFields(String refreshToken) {
-        LinkedMultiValueMap<String, String> fields = new LinkedMultiValueMap<>();
-        fields.addAll(buildRequestSecretFields());
-        fields.add(KeycloakFields.GRANT_TYPE_KEY, KeycloakFields.REFRESH_TOKEN);
-        fields.add(KeycloakFields.REFRESH_TOKEN, refreshToken);
+    private Map<String, String> buildRefreshTokenRequestFields(String refreshToken) {
+        var result = new HashMap<>(Map.of(
+                KeycloakFields.GRANT_TYPE_KEY, KeycloakFields.REFRESH_TOKEN,
+                KeycloakFields.REFRESH_TOKEN, refreshToken
+        ));
+        result.putAll(buildRequestSecretFields());
 
-        return fields;
+        return result;
     }
 
-    private MultiValueMap<String, String> buildLoginRequestFields(String userName, String password) {
-        LinkedMultiValueMap<String, String> fieldsMap = new LinkedMultiValueMap<>();
-        fieldsMap.add(KeycloakFields.GRANT_TYPE_KEY, KeycloakFields.GRANT_TYPE_PASSWORD);
-        fieldsMap.add(KeycloakFields.USER_NAME, userName);
-        fieldsMap.add(KeycloakFields.PASSWORD, password);
-        fieldsMap.addAll(buildRequestSecretFields());
+    private Map<String, String> buildLoginRequestFields(String userName, String password) {
+        var result = new HashMap<>(Map.of(
+                KeycloakFields.GRANT_TYPE_KEY, KeycloakFields.GRANT_TYPE_PASSWORD,
+                KeycloakFields.USER_NAME, userName,
+                KeycloakFields.PASSWORD, password
+        ));
+        result.putAll(buildRequestSecretFields());
 
-        return fieldsMap;
+        return result;
     }
 
-    private MultiValueMap<String, String> buildTokenIntrospectionRequestFields(String token) {
-        LinkedMultiValueMap<String, String> fieldsMap = new LinkedMultiValueMap<>();
-        fieldsMap.add(KeycloakFields.TOKEN, token);
-        fieldsMap.addAll(buildRequestSecretFields());
+    private Map<String, String> buildTokenIntrospectionRequestFields(String token) {
+        var result = new HashMap<>(Map.of(
+                KeycloakFields.TOKEN, token
+        ));
+        result.putAll(buildRequestSecretFields());
 
-        return fieldsMap;
+        return result;
     }
 
-    private MultiValueMap<String, String> buildRequestSecretFields() {
-        LinkedMultiValueMap<String, String> fieldsMap = new LinkedMultiValueMap<>();
-        fieldsMap.add(KeycloakFields.CLIENT_ID_FIELD, keycloakPropertyProvider.provideClientId());
-        fieldsMap.add(KeycloakFields.CLIENT_SECRET_FIELD, keycloakPropertyProvider.provideClientSecret());
-
-        return fieldsMap;
+    private Map<String, String> buildRequestSecretFields() {
+        return Map.of(
+                KeycloakFields.CLIENT_ID_FIELD, keycloakPropertyProvider.provideClientId(),
+                KeycloakFields.CLIENT_SECRET_FIELD, keycloakPropertyProvider.provideClientSecret()
+        );
     }
 
-    private MultiValueMap<String, String> buildContentTypeHeaderFormUrlencoded() {
-        LinkedMultiValueMap<String, String> headerMap = new LinkedMultiValueMap<>(1);
-        headerMap.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE);
-        return headerMap;
+    private HttpHeaders buildContentTypeHeaderFormUrlencoded() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE);
+
+        return headers;
     }
 
-    private MultiValueMap<String, String> buildUserInfoRequestHeaders(String token) {
-        LinkedMultiValueMap<String, String> headerMap = new LinkedMultiValueMap<>(2);
-        headerMap.add(HttpHeaders.AUTHORIZATION, KeycloakFields.BEARER_VALUE.concat(token));
-        headerMap.addAll(buildContentTypeHeaderFormUrlencoded());
-        return headerMap;
+    private HttpHeaders buildUserInfoRequestHeaders(String token) {
+        HttpHeaders headers = buildContentTypeHeaderFormUrlencoded();
+        headers.add(HttpHeaders.AUTHORIZATION, KeycloakFields.BEARER_VALUE.concat(token));
+
+        return headers;
     }
 }

@@ -1,11 +1,12 @@
 package com.verbitsky.controller;
 
-import com.verbitsky.security.annotation.AdminAccess;
-import com.verbitsky.security.annotation.AnyAuthorizedUser;
-import com.verbitsky.security.annotation.UserAccess;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.verbitsky.security.annotation.AdminAccess;
+import com.verbitsky.security.annotation.AnyAuthorizedUser;
+import com.verbitsky.security.annotation.UserAccess;
 
 @RestController
 @RequestMapping("/test_roles")

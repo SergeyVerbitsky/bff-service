@@ -3,17 +3,19 @@ package com.verbitsky.converter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.verbitsky.exception.ServiceException;
+
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
-public class ConverterProviderImpl implements ConverterProvider {
+public class ConverterManagerImpl implements ConverterManager {
     private final Map<Class<?>, Map<Class<?>, ResponseConverter<?, ?>>> converters;
 
     @Autowired
-    public ConverterProviderImpl(List<ResponseConverter<?, ?>> converters) {
+    public ConverterManagerImpl(List<ResponseConverter<?, ?>> converters) {
         this.converters = converters.stream()
                 .collect(Collectors.groupingBy(
                         ResponseConverter::getResponseType,
@@ -23,18 +25,19 @@ public class ConverterProviderImpl implements ConverterProvider {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T, R> ResponseConverter<T, R> provideConverter(Class<T> typeFrom, Class<R> typeTo) {
+    public <S, R> ResponseConverter<S, R> provideConverter(Class<S> typeFrom, Class<R> typeTo) {
         Map<Class<?>, ResponseConverter<?, ?>> innerMap = converters.get(typeFrom);
         if (innerMap == null) {
-            throw new SecurityException("No converters found for type " + typeFrom);
+            throw new ServiceException(String.format("No converters found for type %s", typeFrom));
         }
 
         ResponseConverter<?, ?> converter = innerMap.get(typeTo);
         if (converter == null) {
-            throw new SecurityException("No converter found for conversion from " + typeFrom + " to " + typeTo);
+            throw new ServiceException(String.format(
+                    "No converter found for conversion from %s to %s", typeFrom, typeTo));
         }
 
-        return (ResponseConverter<T, R>) converter;
+        return (ResponseConverter<S, R>) converter;
     }
 }
 

@@ -1,6 +1,7 @@
 package com.verbitsky.property;
 
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
+
 import org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2ClientProperties;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;

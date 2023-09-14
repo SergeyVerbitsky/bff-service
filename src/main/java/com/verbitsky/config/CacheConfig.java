@@ -1,15 +1,16 @@
 package com.verbitsky.config;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.concurrent.TimeUnit;
-
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.verbitsky.security.CustomUserDetails;
 import com.verbitsky.property.TokenCacheProperties;
+import com.verbitsky.security.CustomUserDetails;
+
+import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableConfigurationProperties(TokenCacheProperties.class)

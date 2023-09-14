@@ -1,7 +1,9 @@
 plugins {
     id 'java'
+    id 'idea'
     id "org.springframework.boot" version '3.1.3'
-    id 'io.spring.dependency-management' version '1.1.0'
+    id 'io.spring.dependency-management' version '1.1.3'
+    id 'com.github.spotbugs' version '5.0.13'
 }
 
 group = 'com.verbitsky'
@@ -14,14 +16,19 @@ repositories {
 }
 
 ext {
-    rev_lombok = '1.18.22'
-    rev_apache_common_lib = '3.12.0'
+    rev_lombok = '1.18.28'
+    rev_apache_common_lib = '3.13.0'
     rev_junit_jupiter = '5.9.2'
+    rev_spring_boot = '3.1.3'
     rev_springCloudVersion = '2022.0.2'
 }
 
+apply {
+    apply from: "${rootDir}/gradle-common/common.gradle"
+    apply from: "${rootDir}/gradle-common/plugins.gradle"
+}
+
 dependencies {
-    implementation 'org.springframework.boot:spring-boot'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
@@ -32,16 +39,11 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
     //common
-    implementation group: 'org.json', name: 'json', version: '20230227'
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: rev_apache_common_lib
     implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
     implementation group: 'com.google.guava', name: 'guava', version: '31.1-jre'
-
-    compileOnly group: 'org.projectlombok', name: 'lombok', version: rev_lombok
-    compileOnly 'org.springframework.boot:spring-boot-configuration-processor'
-    //annotationProcessors
-    annotationProcessor "org.projectlombok:lombok:${rev_lombok}"
-    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:2.4.2'
+    //internal
+    implementation 'com.verbitsky.api:service-api-core:1.0'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }

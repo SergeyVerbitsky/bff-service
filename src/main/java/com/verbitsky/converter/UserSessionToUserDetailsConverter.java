@@ -1,21 +1,21 @@
 package com.verbitsky.converter;
 
-import com.verbitsky.security.CustomUserDetails;
-import com.verbitsky.service.backend.response.UserSessionResponse;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
+import com.verbitsky.api.model.dto.SessionDto;
+import com.verbitsky.security.CustomUserDetails;
+
 @Component
-public class UserSessionToUserDetailsConverter implements ResponseConverter<UserSessionResponse, CustomUserDetails> {
-
-
+public class UserSessionToUserDetailsConverter implements ResponseConverter<SessionDto, CustomUserDetails> {
     @Override
-    public CustomUserDetails convert(UserSessionResponse objectToConvert) {
+    public CustomUserDetails convert(@NonNull SessionDto objectToConvert) {
         return null;
     }
 
     @Override
-    public Class<UserSessionResponse> getResponseType() {
-        return UserSessionResponse.class;
+    public Class<SessionDto> getResponseType() {
+        return SessionDto.class;
     }
 
     @Override

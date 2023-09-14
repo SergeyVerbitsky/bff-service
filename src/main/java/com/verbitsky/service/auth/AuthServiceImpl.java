@@ -1,8 +1,21 @@
 package com.verbitsky.service.auth;
 
 import com.google.common.cache.Cache;
-import com.verbitsky.converter.ConverterProvider;
-import com.verbitsky.converter.ResponseConverter;
+
+import reactor.core.publisher.Mono;
+
+import org.apache.commons.lang3.StringUtils;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.stereotype.Service;
+
+import lombok.extern.slf4j.Slf4j;
+
+import com.verbitsky.api.client.ApiResponse;
+import com.verbitsky.api.model.dto.SessionDto;
+import com.verbitsky.converter.ConverterManager;
 import com.verbitsky.exception.AuthException;
 import com.verbitsky.model.BffLoginRequest;
 import com.verbitsky.model.BffLoginResponse;
@@ -11,16 +24,8 @@ import com.verbitsky.security.CustomOAuth2TokenAuthentication;
 import com.verbitsky.security.CustomUserDetails;
 import com.verbitsky.security.TokenDataProvider;
 import com.verbitsky.service.backend.BackendService;
-import com.verbitsky.service.backend.response.UserSessionResponse;
 import com.verbitsky.service.keycloak.KeycloakService;
 import com.verbitsky.service.keycloak.response.KeycloakLoginResponse;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -35,7 +40,7 @@ import static com.verbitsky.security.CustomOAuth2TokenAuthentication.authenticat
 public class AuthServiceImpl implements AuthService {
     private final KeycloakService keycloakService;
     private final BackendService backendService;
-    private final ConverterProvider converterProvider;
+    private final ConverterManager converterManager;
     private final AtomicReference<Cache<String, CustomUserDetails>> userCache;
     private final TokenDataProvider tokenDataProvider;
     private final AuthenticationManager authenticationManager;
@@ -43,13 +48,13 @@ public class AuthServiceImpl implements AuthService {
     public AuthServiceImpl(@Qualifier("tokenCache") Cache<String, CustomUserDetails> tokenCache,
                            KeycloakService keycloakService,
                            BackendService backendService,
-                           ConverterProvider converterProvider, TokenDataProvider tokenDataProvider,
+                           ConverterManager converterManager, TokenDataProvider tokenDataProvider,
                            AuthenticationManager authenticationManager) {
 
         this.keycloakService = keycloakService;
         this.userCache = new AtomicReference<>(tokenCache);
         this.backendService = backendService;
-        this.converterProvider = converterProvider;
+        this.converterManager = converterManager;
         this.tokenDataProvider = tokenDataProvider;
         this.authenticationManager = authenticationManager;
     }
@@ -90,7 +95,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private CustomUserDetails getModelFromStorage(String userId, String sessionId) {
-        Optional<CustomUserDetails> userFromCache = getUserFromCache(userId, sessionId);
+        var userFromCache = getUserFromCache(userId, sessionId);
         return userFromCache
                 .orElseGet(() -> getUserSessionFromDb(userId, sessionId));
     }
@@ -113,7 +118,6 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private CustomUserDetails getUserSessionFromDb(String userId, String sessionId) {
-
         try {
             return backendService.getUserSession(userId)
                     .map(this::convertUserSessionResponse)
@@ -125,21 +129,18 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private CustomUserDetails convertUserSessionResponse(UserSessionResponse response) {
-        ResponseConverter<UserSessionResponse, CustomUserDetails> converter =
-                converterProvider.provideConverter(UserSessionResponse.class, CustomUserDetails.class);
-
-        return converter.convert(response);
+    private CustomUserDetails convertUserSessionResponse(ApiResponse response) {
+        var converter = converterManager.provideConverter(SessionDto.class, CustomUserDetails.class);
+        return converter.convert((SessionDto) response.getResponseObject());
     }
 
-    /*response ->.convert(response)*/
     private Mono<CustomUserDetails> processRefreshToken(String refreshToken) {
         if (tokenDataProvider.isTokenValid(refreshToken)) {
             return keycloakService.processRefreshToken(refreshToken)
                     .map(this::processKeycloakLoginResponse);
         }
 
-        throw new AuthException("Couldn't process refresh token and ");
+        throw new AuthException("Refresh token processing error", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     private CustomUserDetails processKeycloakLoginResponse(KeycloakLoginResponse response) {
@@ -149,7 +150,8 @@ public class AuthServiceImpl implements AuthService {
             authenticationManager.authenticate(authenticationFromUserDetails(userDetails));
             return userDetails;
         } catch (Exception e) {
-            throw new AuthException("KeycloakLoginResponse processing error: " + e.getMessage());
+            throw new AuthException("KeycloakLoginResponse processing error: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -165,7 +167,8 @@ public class AuthServiceImpl implements AuthService {
 
     private void saveUserDetails(CustomUserDetails userDetails) {
         userCache.get().put(userDetails.getUserId(), userDetails);
-        //todo impl repo to save
+        backendService.saveUserSession(buildSessionDto(userDetails)).subscribe()
+        ;
     }
 
     private void invalidateSession(String userId) {
@@ -174,5 +177,14 @@ public class AuthServiceImpl implements AuthService {
             userCache.get().invalidate(userId);
         }
         //todo remove from db (and keycloak?)
+    }
+
+    private SessionDto buildSessionDto(CustomUserDetails userDetails) {
+        SessionDto sessionDto = new SessionDto();
+        sessionDto.setAccessToken(userDetails.getAccessToken());
+        sessionDto.setRefreshToken(userDetails.getRefreshToken());
+        sessionDto.setUserId(userDetails.getUserId());
+
+        return sessionDto;
     }
 }

@@ -1,10 +1,11 @@
 package com.verbitsky.service.keycloak;
 
+import reactor.core.publisher.Mono;
+
 import com.verbitsky.service.keycloak.response.KeycloakIntrospectResponse;
 import com.verbitsky.service.keycloak.response.KeycloakLoginResponse;
 import com.verbitsky.service.keycloak.response.KeycloakLogoutResponse;
 import com.verbitsky.service.keycloak.response.KeycloakUserInfoResponse;
-import reactor.core.publisher.Mono;
 
 public interface KeycloakService {
     Mono<KeycloakLoginResponse> processLogin(String userName, String password);

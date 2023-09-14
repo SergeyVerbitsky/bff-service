@@ -1,9 +1,11 @@
 package com.verbitsky.security;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.EqualsAndHashCode;
+
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.AbstractOAuth2TokenAuthenticationToken;
+
+import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
 import java.util.Collections;

@@ -1,7 +1,5 @@
 package com.verbitsky.config;
 
-import com.verbitsky.property.WebClientProperties;
-import com.verbitsky.security.CustomAuthFilter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -22,14 +20,18 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
+import com.verbitsky.property.WebClientProperties;
+import com.verbitsky.security.CustomAuthFilter;
+
 @Configuration
 @EnableConfigurationProperties(WebClientProperties.class)
 @EnableWebSecurity
 @EnableMethodSecurity()
 public class SecurityConfig {
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, CustomAuthFilter authFilter,
-                                                   @Qualifier("customAuthProvider") AuthenticationProvider authProvider) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http, CustomAuthFilter authFilter,
+            @Qualifier("customAuthProvider") AuthenticationProvider authProvider) throws Exception {
 
         http.authorizeHttpRequests(authorizeRequests -> authorizeRequests
                 .requestMatchers(HttpMethod.POST, "/**").permitAll()
@@ -48,7 +50,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration authenticationConfiguration) throws Exception {
+
         return authenticationConfiguration.getAuthenticationManager();
     }
 

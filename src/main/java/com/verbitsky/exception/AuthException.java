@@ -1,12 +1,12 @@
 package com.verbitsky.exception;
 
-import lombok.Getter;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
 
+import lombok.Getter;
+
 import java.io.Serial;
 
-//todo refactor rename class
 public class AuthException extends AuthenticationException {
     @Serial
     private static final long serialVersionUID = -246425056301051639L;
@@ -21,10 +21,5 @@ public class AuthException extends AuthenticationException {
     public AuthException(String message, Exception exception, HttpStatus status) {
         super(message, exception);
         this.httpStatus = status;
-    }
-
-    public AuthException(String message) {
-        super(message);
-        httpStatus = HttpStatus.SERVICE_UNAVAILABLE;
     }
 }

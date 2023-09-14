@@ -1,9 +1,12 @@
 package com.verbitsky.service.keycloak.exception;
 
-import com.verbitsky.service.keycloak.client.KeycloakAction;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.http.HttpStatusCode;
+
+import com.verbitsky.service.keycloak.client.KeycloakAction;
 
 import java.io.Serial;
 
@@ -17,8 +20,23 @@ public class InvalidKeycloakRequestException extends RuntimeException {
     private final String errorMessage;
 
     public InvalidKeycloakRequestException(HttpStatusCode code, KeycloakAction action, String errorMessage) {
+        super(errorMessage);
         this.errorCode = code;
         this.errorMessage = errorMessage;
         this.action = action;
+    }
+
+    public InvalidKeycloakRequestException() {
+        super();
+        errorCode = HttpStatus.INTERNAL_SERVER_ERROR;
+        action = KeycloakAction.UNKNOWN;
+        errorMessage = "unknown error";
+    }
+
+    public InvalidKeycloakRequestException(String message) {
+        super(message);
+        errorCode = HttpStatus.INTERNAL_SERVER_ERROR;
+        action = KeycloakAction.UNKNOWN;
+        errorMessage = message;
     }
 }

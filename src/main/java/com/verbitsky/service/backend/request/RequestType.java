@@ -2,10 +2,11 @@ package com.verbitsky.service.backend.request;
 
 import lombok.Getter;
 
-import static com.verbitsky.service.backend.RequestEndpointKeys.USER_SESSION_URI_KEY;
+import com.verbitsky.service.backend.RequestEndpointKeys;
 
 public enum RequestType {
-    GET_USER_SESSION(USER_SESSION_URI_KEY);
+    USER_SESSION_OP(RequestEndpointKeys.USER_SESSION);
+
     @Getter
     private final String uriKey;
 

@@ -6,5 +6,6 @@ public enum KeycloakAction {
     LOGIN,
     LOGOUT,
     REGISTRATION,
-    USER_INFO
+    USER_INFO,
+    UNKNOWN
 }
