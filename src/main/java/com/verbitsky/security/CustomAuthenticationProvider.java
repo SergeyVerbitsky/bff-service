@@ -16,11 +16,11 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         CustomOAuth2TokenAuthentication auth = (CustomOAuth2TokenAuthentication) authentication;
         if (Objects.isNull(auth)) {
-            throw new AuthException("Received null authentication object", HttpStatus.FORBIDDEN);
+            throw new AuthException(HttpStatus.FORBIDDEN, "Received null authentication object");
         }
 
         if (auth.getAuthorities().isEmpty()) {
-            throw new AuthException("User authorities is empty", HttpStatus.FORBIDDEN);
+            throw new AuthException(HttpStatus.FORBIDDEN, "User authorities is empty");
         }
 
         auth.setAuthenticated(auth.isAuthenticationValid());

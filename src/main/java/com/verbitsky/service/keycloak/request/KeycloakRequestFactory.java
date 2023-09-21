@@ -10,8 +10,12 @@ import com.verbitsky.service.RemoteApiRequest;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.verbitsky.service.keycloak.request.KeycloakFields.CREDENTIALS;
+import static com.verbitsky.service.keycloak.request.KeycloakFields.GRANT_TYPE_PASSWORD;
+
 @Component
 public final class KeycloakRequestFactory {
+    private static final boolean BLOCKED_PASSWORD = false;
     private final KeycloakPropertyProvider keycloakPropertyProvider;
 
     public KeycloakRequestFactory(KeycloakPropertyProvider propertyProvider) {
@@ -21,6 +25,11 @@ public final class KeycloakRequestFactory {
     public RemoteApiRequest buildLoginRequest(String userName, String password) {
         return new RemoteApiRequest(keycloakPropertyProvider.provideTokenUri(),
                 buildContentTypeHeaderFormUrlencoded(), buildLoginRequestFields(userName, password));
+    }
+
+    public RemoteApiRequest buildUserRegistrationRequest(Map<String, String> regData, String adminToken) {
+        return new RemoteApiRequest(keycloakPropertyProvider.provideUserRegistrationUri(),
+                buildUserRegistrationRequestHeaders(adminToken), buildUserRegistrationRequestFields(regData));
     }
 
     public RemoteApiRequest buildTokenIntrospectionRequest(String token) {
@@ -55,7 +64,7 @@ public final class KeycloakRequestFactory {
 
     private Map<String, String> buildLoginRequestFields(String userName, String password) {
         var result = new HashMap<>(Map.of(
-                KeycloakFields.GRANT_TYPE_KEY, KeycloakFields.GRANT_TYPE_PASSWORD,
+                KeycloakFields.GRANT_TYPE_KEY, GRANT_TYPE_PASSWORD,
                 KeycloakFields.USER_NAME, userName,
                 KeycloakFields.PASSWORD, password
         ));
@@ -82,7 +91,7 @@ public final class KeycloakRequestFactory {
 
     private HttpHeaders buildContentTypeHeaderFormUrlencoded() {
         HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE);
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         return headers;
     }
@@ -92,5 +101,27 @@ public final class KeycloakRequestFactory {
         headers.add(HttpHeaders.AUTHORIZATION, KeycloakFields.BEARER_VALUE.concat(token));
 
         return headers;
+    }
+
+    private Map<String, Object> buildUserRegistrationRequestFields(Map<String, String> regData) {
+        Map<String, Object> requestFields = new HashMap<>(regData);
+        requestFields.put(CREDENTIALS,
+                new Credentials(GRANT_TYPE_PASSWORD, regData.get(KeycloakFields.PASSWORD), BLOCKED_PASSWORD));
+
+        return requestFields;
+    }
+
+    private HttpHeaders buildUserRegistrationRequestHeaders(String adminToken) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.add(HttpHeaders.AUTHORIZATION, KeycloakFields.BEARER_VALUE.concat(adminToken));
+
+        return headers;
+    }
+
+    private record Credentials(
+            String type,
+            String value,
+            boolean temporary) {
     }
 }

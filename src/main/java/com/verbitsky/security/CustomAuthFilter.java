@@ -5,7 +5,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -34,11 +33,11 @@ public class CustomAuthFilter extends GenericFilterBean {
     public void doFilter(ServletRequest request, ServletResponse response,
                          FilterChain chain) throws IOException, ServletException {
 
-        processUserAuthentication(request, response);
+        processUserAuthentication(request);
         chain.doFilter(request, response);
     }
 
-    private void processUserAuthentication(ServletRequest request, ServletResponse response) throws IOException {
+    private void processUserAuthentication(ServletRequest request) {
         HttpServletRequest req = (HttpServletRequest) request;
         String userId = req.getHeader(USER_ID);
         String sessionId = req.getHeader(SESSION_ID);
@@ -50,8 +49,7 @@ public class CustomAuthFilter extends GenericFilterBean {
             }
         } catch (AuthException exception) {
             SecurityContextHolder.clearContext();
-            ((HttpServletResponse) response).sendError(exception.getHttpStatus().value());
-            throw new AuthException("Token is not valid or expired", HttpStatus.FORBIDDEN);
+            throw new AuthException(HttpStatus.FORBIDDEN, "Token is not valid or expired");
         }
     }
 }

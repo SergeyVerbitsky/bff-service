@@ -1,6 +1,7 @@
 package com.verbitsky.service.keycloak.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
@@ -18,4 +19,8 @@ public class KeycloakLoginResponse extends KeycloakAbstractResponse {
     private static final long serialVersionUID = 6450381531922719321L;
     private String accessToken;
     private String refreshToken;
+    @JsonProperty("error")
+    private String error;
+    @JsonProperty("error_description")
+    private String errorDescription;
 }

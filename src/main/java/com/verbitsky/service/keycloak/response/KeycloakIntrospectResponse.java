@@ -1,5 +1,6 @@
 package com.verbitsky.service.keycloak.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,10 +20,12 @@ import java.util.List;
 @Getter
 @Setter
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class KeycloakIntrospectResponse extends KeycloakAbstractResponse {
     @Serial
     private static final long serialVersionUID = 3503567850506969737L;
-    private boolean active;
+    @JsonProperty("active")
+    private boolean tokenActive;
     private long exp;
     @JsonProperty("username")
     private String userName;

@@ -16,12 +16,14 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.verbitsky.api.client.RemoteServiceClient;
 import com.verbitsky.api.client.RemoteServiceClientImpl;
-import com.verbitsky.api.model.dto.SessionDto;
+import com.verbitsky.api.model.SessionModel;
 import com.verbitsky.property.WebClientProperties;
 
 import java.time.Duration;
@@ -29,6 +31,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Configuration
+@EnableAsync
+@EnableScheduling
 public class ServiceConfig {
     @Bean
     @Primary
@@ -38,7 +42,7 @@ public class ServiceConfig {
         objectMapper.findAndRegisterModules();
         //add here more subtypes if needed
         List<NamedType> namedTypes = List.of(
-                new NamedType(SessionDto.class, "sessionDto")
+                new NamedType(SessionModel.class, "sessionModel")
         );
 
         namedTypes.forEach(objectMapper::registerSubtypes);

@@ -2,11 +2,11 @@ package com.verbitsky.service.backend;
 
 import reactor.core.publisher.Mono;
 
-import com.verbitsky.api.client.CommonApiResponse;
-import com.verbitsky.api.model.dto.SessionDto;
+import com.verbitsky.api.client.ApiResponse;
+import com.verbitsky.api.model.SessionModel;
 
 public interface BackendService {
-    Mono<CommonApiResponse> getUserSession(String userId);
+    Mono<ApiResponse> getUserSession(String userId);
 
-    Mono<CommonApiResponse> saveUserSession(SessionDto sessionDto);
+    Mono<ApiResponse> saveUserSession(SessionModel sessionDto);
 }

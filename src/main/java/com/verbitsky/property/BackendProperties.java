@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.Map;
 
-@ConfigurationProperties("backend-service")
+@ConfigurationProperties("services.backend-service")
 public record BackendProperties(
         String port,
         String host,

@@ -1,9 +1,10 @@
 package com.verbitsky.converter;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
-import com.verbitsky.exception.ServiceException;
+import com.verbitsky.api.exception.ServiceException;
 
 import java.util.List;
 import java.util.Map;
@@ -28,13 +29,14 @@ public class ConverterManagerImpl implements ConverterManager {
     public <S, R> ResponseConverter<S, R> provideConverter(Class<S> typeFrom, Class<R> typeTo) {
         Map<Class<?>, ResponseConverter<?, ?>> innerMap = converters.get(typeFrom);
         if (innerMap == null) {
-            throw new ServiceException(String.format("No converters found for type %s", typeFrom));
+            throw new ServiceException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    String.format("No converters found for type %s", typeFrom));
         }
 
         ResponseConverter<?, ?> converter = innerMap.get(typeTo);
         if (converter == null) {
-            throw new ServiceException(String.format(
-                    "No converter found for conversion from %s to %s", typeFrom, typeTo));
+            throw new ServiceException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    String.format("No converter found for conversion from %s to %s", typeFrom, typeTo));
         }
 
         return (ResponseConverter<S, R>) converter;

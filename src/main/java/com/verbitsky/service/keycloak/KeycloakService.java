@@ -2,19 +2,17 @@ package com.verbitsky.service.keycloak;
 
 import reactor.core.publisher.Mono;
 
-import com.verbitsky.service.keycloak.response.KeycloakIntrospectResponse;
-import com.verbitsky.service.keycloak.response.KeycloakLoginResponse;
-import com.verbitsky.service.keycloak.response.KeycloakLogoutResponse;
-import com.verbitsky.service.keycloak.response.KeycloakUserInfoResponse;
+import com.verbitsky.api.client.ApiResponse;
 
+import java.util.Map;
+
+@SuppressWarnings("unused")
 public interface KeycloakService {
-    Mono<KeycloakLoginResponse> processLogin(String userName, String password);
+    Mono<ApiResponse> processLogin(String userName, String password);
 
-    Mono<KeycloakIntrospectResponse> introspectToken(String token);
+    Mono<ApiResponse> processUserRegistration(Map<String, String> regData);
 
-    Mono<KeycloakUserInfoResponse> getUserInfoByToken(String token);
+    Mono<ApiResponse> processRefreshToken(String token);
 
-    Mono<KeycloakLogoutResponse> processLogout(String userSub);
-
-    Mono<KeycloakLoginResponse> processRefreshToken(String token);
+    void init();
 }

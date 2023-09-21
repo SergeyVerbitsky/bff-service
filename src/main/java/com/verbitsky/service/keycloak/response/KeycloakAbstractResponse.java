@@ -1,24 +1,19 @@
 package com.verbitsky.service.keycloak.response;
 
-import com.verbitsky.api.client.ApiResponse;
-import com.verbitsky.api.error.ApiError;
-import com.verbitsky.api.model.dto.ApiModel;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import lombok.Getter;
+import lombok.Setter;
 
 import java.io.Serial;
+import java.io.Serializable;
 
-public abstract class KeycloakAbstractResponse implements ApiResponse {
+@JsonIgnoreProperties(ignoreUnknown = true)
+@Getter
+@Setter
+public abstract class KeycloakAbstractResponse implements Serializable {
+    private String errorType;
+    private String errorDescription;
     @Serial
     private static final long serialVersionUID = 4534475632069679902L;
-
-    @Override
-    public ApiError getApiError() {
-        return null;
-    }
-
-    @Override
-    public ApiModel getResponseObject() {
-        return null;
-    }
-    //todo transofrm to interface add response code processing
-    // (добавить в респонс поля с ошибками error и errorDescription)
 }
