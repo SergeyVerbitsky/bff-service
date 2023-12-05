@@ -7,7 +7,6 @@ import reactor.core.publisher.Mono;
 import org.apache.commons.lang3.StringUtils;
 
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +19,7 @@ import com.verbitsky.converter.ConverterManager;
 import com.verbitsky.exception.AuthException;
 import com.verbitsky.model.BffLoginRequest;
 import com.verbitsky.model.BffLoginResponse;
+import com.verbitsky.model.BffLogoutRequest;
 import com.verbitsky.model.BffRegisterRequest;
 import com.verbitsky.model.BffRegisterResponse;
 import com.verbitsky.security.CustomOAuth2TokenAuthentication;
@@ -42,6 +42,8 @@ import static com.verbitsky.service.keycloak.request.KeycloakFields.ENABLE_USER;
 import static com.verbitsky.service.keycloak.request.KeycloakFields.USER_FIRST_NAME;
 import static com.verbitsky.service.keycloak.request.KeycloakFields.USER_LAST_NAME;
 import static com.verbitsky.service.keycloak.request.KeycloakFields.USER_NAME;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 
 @Service
@@ -69,110 +71,59 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public CustomUserDetails getUserById(String id) {
-        return null;
-    }
-
-    @Override
     public Mono<BffLoginResponse> processLoginUser(BffLoginRequest loginRequest) {
-
         return keycloakService
                 .processLogin(loginRequest.userName(), loginRequest.password())
                 .map(this::processApiLoginResponse)
                 .map(this::mapToLoginResponse);
     }
 
-
     @Override
-    public void processUserLogout(String userId) {
-        invalidateSession(userId);
-        //todo remove from db
+    public void processUserLogout(BffLogoutRequest logoutRequest) {
+        var modelFromStorage = getModelFromStorage(logoutRequest.userId());
+        if (modelFromStorage.isPresent()) {
+            CustomUserDetails userDetails = modelFromStorage.get();
+            if (isSessionIdValid(userDetails, logoutRequest.sessionId())) {
+                invalidateSession(userDetails.getUserId());
+            }
+        }
     }
 
     @Override
     public Mono<BffRegisterResponse> processUserRegistration(BffRegisterRequest registerRequest) {
-        //todo add fields validation
         return keycloakService
                 .processUserRegistration(buildRequestFieldsMap(registerRequest))
-                .map(apiResponse -> mapToUserRegisterResponse(registerRequest));
+                .map(apiResponse -> processApiRegisterResponse(apiResponse, registerRequest));
     }
 
     @Override
     public CustomOAuth2TokenAuthentication resolveAuthentication(String userId, String sessionId) {
-        return authenticationFromUserDetails(getModelFromStorage(userId, sessionId));
-    }
-
-    private boolean isSessionIdValid(CustomUserDetails userDetails, String receivedSessionId) {
-        return Objects.nonNull(userDetails)
-                && StringUtils.isNotBlank(receivedSessionId)
-                && receivedSessionId.equals(userDetails.getSessionId());
-    }
-
-    private CustomUserDetails getModelFromStorage(String userId, String sessionId) {
-        var userFromCache = getUserFromCache(userId, sessionId);
-        return userFromCache
-                .orElseGet(() -> getUserSessionFromDb(userId, sessionId));
-    }
-
-    private Optional<CustomUserDetails> getUserFromCache(String userId, String sessionId) {
-        var userDetails = userCache.get().getIfPresent(userId);
-
-        if (isSessionIdValid(userDetails, sessionId)) {
-            if (tokenDataProvider.isTokenValid(userDetails.getJwt())) {
-                return Optional.of(userDetails);
-            }
-            String refreshToken = userDetails.getRefreshToken();
-            if (tokenDataProvider.isTokenValid(refreshToken)) {
-                CustomUserDetails customUserDetails = processRefreshToken(refreshToken).block();
-                return Optional.of(customUserDetails);
+        var modelFromStorage = getModelFromStorage(userId);
+        if (modelFromStorage.isPresent()) {
+            CustomUserDetails userDetails = modelFromStorage.get();
+            if (isSessionIdValid(userDetails, sessionId)) {
+                String accessToken = userDetails.getAccessToken();
+                if (tokenDataProvider.isTokenExpired(accessToken)) {
+                    CustomUserDetails updatedModel = processRefreshToken(userDetails.getRefreshToken()).block();
+                    return authenticationFromUserDetails(updatedModel);
+                } else {
+                    return authenticationFromUserDetails(userDetails);
+                }
+            } else {
+                throw new AuthException(BAD_REQUEST, "Invalid userId or sessionId");
             }
         }
 
-        return Optional.empty();
-    }
-
-    private CustomUserDetails getUserSessionFromDb(String userId, String sessionId) {
-        try {
-            return backendService.getUserSession(userId)
-                    .map(this::convertUserSessionResponse)
-                    .block();
-        } catch (Exception exception) {
-            log.warn("Requested session id ({}) of user ({}) wasn't found: {}",
-                    sessionId, userId, exception.getMessage());
-            throw new AuthException(HttpStatus.FORBIDDEN, "Authentication error", exception);
-        }
-    }
-
-    private CustomUserDetails convertUserSessionResponse(ApiResponse apiResponse) {
-        if (apiResponse.isErrorResponse()) {
-            throw new ServiceException(apiResponse.getApiError().toString());
-        }
-        var response = (SessionModel) apiResponse.getResponseObject();
-        var converter = converterManager.provideConverter(SessionModel.class, CustomUserDetails.class);
-        return converter.convert(response);
-    }
-
-    private Mono<CustomUserDetails> processRefreshToken(String refreshToken) {
-        if (tokenDataProvider.isTokenValid(refreshToken)) {
-            return keycloakService.processRefreshToken(refreshToken)
-                    .map(this::processApiLoginResponse);
-        }
-
-        throw new AuthException(INTERNAL_SERVER_ERROR, "Refresh token processing error");
+        throw new AuthException(FORBIDDEN, "User session has expired");
     }
 
     private CustomUserDetails processApiLoginResponse(ApiResponse response) {
         if (response.isErrorResponse()) {
-            var errorMessage = response.getApiError().getErrorMessage();
-            var cause = response.getApiError().getCause();
-            var httpStatus = response.getApiError().getHttpStatusCode();
-
-            throw new AuthException(
-                    httpStatus, "User login processing error: " + errorMessage, cause);
+            throwAuthException(response, AuthErrorType.LOGIN);
         }
 
         try {
-            KeycloakLoginResponse loginResponse = (KeycloakLoginResponse) response.getResponseObject();
+            var loginResponse = (KeycloakLoginResponse) response.getResponseObject();
             var userDetails = buildUserDetails(loginResponse.getAccessToken(), loginResponse.getRefreshToken());
             saveUserDetails(userDetails);
             authenticationManager.authenticate(authenticationFromUserDetails(userDetails));
@@ -183,12 +134,50 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private BffRegisterResponse mapToUserRegisterResponse(BffRegisterRequest registerRequest) {
-        return new BffRegisterResponse(registerRequest.userName());
-    }
-
     private BffLoginResponse mapToLoginResponse(CustomUserDetails userDetails) {
         return new BffLoginResponse(userDetails.getUserId(), userDetails.getSessionId());
+    }
+
+    private BffRegisterResponse processApiRegisterResponse(ApiResponse response, BffRegisterRequest request) {
+        if (response.isErrorResponse()) {
+            throwAuthException(response, AuthErrorType.REGISTRATION);
+        }
+
+        return new BffRegisterResponse(request.userName());
+    }
+
+    private Mono<CustomUserDetails> processRefreshToken(String refreshToken) {
+        if (!tokenDataProvider.isTokenExpired(refreshToken)) {
+            return keycloakService.processRefreshToken(refreshToken)
+                    .map(this::processApiLoginResponse);
+        }
+
+        throw new AuthException(INTERNAL_SERVER_ERROR, "Refresh token processing error");
+    }
+
+    private Optional<CustomUserDetails> getModelFromStorage(String userId) {
+        var userFromCache = userCache.getAcquire().getIfPresent(userId);
+        return Objects.nonNull(userFromCache) ? Optional.of(userFromCache) : getUserSessionFromDb(userId);
+    }
+
+    private Optional<CustomUserDetails> getUserSessionFromDb(String userId) {
+        try {
+            var customUserDetails = backendService.getUserSession(userId)
+                    .map(this::convertUserSessionResponse)
+                    .block();
+            return Optional.of(customUserDetails);
+        } catch (Exception exception) {
+            return Optional.empty();
+        }
+    }
+
+    private CustomUserDetails convertUserSessionResponse(ApiResponse apiResponse) {
+        if (apiResponse.isErrorResponse()) {
+            throw new ServiceException(apiResponse.getApiError().toString());
+        }
+        var response = (SessionModel) apiResponse.getResponseObject();
+        var converter = converterManager.provideConverter(SessionModel.class, CustomUserDetails.class);
+        return converter.convert(response);
     }
 
     private CustomUserDetails buildUserDetails(String accessToken, String refreshToken)
@@ -202,17 +191,19 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void saveUserDetails(CustomUserDetails userDetails) {
-        userCache.get().put(userDetails.getUserId(), userDetails);
-        backendService.saveUserSession(buildSessionDto(userDetails)).subscribe()
-        ;
+        userCache.getAcquire().put(userDetails.getUserId(), userDetails);
+        backendService.saveUserSession(buildSessionDto(userDetails)).subscribe();
     }
 
     private void invalidateSession(String userId) {
-        var customUserDetails = userCache.get().getIfPresent(userId);
-        if (Objects.nonNull(customUserDetails)) {
-            userCache.get().invalidate(userId);
-        }
-        //todo remove from db (and keycloak?)
+        userCache.getAcquire().invalidate(userId);
+        backendService.invalidateUserSession(userId);
+    }
+
+    private boolean isSessionIdValid(CustomUserDetails userDetails, String receivedSessionId) {
+        return Objects.nonNull(userDetails)
+                && StringUtils.isNotBlank(receivedSessionId)
+                && receivedSessionId.equals(userDetails.getSessionId());
     }
 
     private Map<String, String> buildRequestFieldsMap(BffRegisterRequest registerRequest) {
@@ -232,5 +223,14 @@ public class AuthServiceImpl implements AuthService {
         sessionDto.setUserId(userDetails.getUserId());
 
         return sessionDto;
+    }
+
+    private void throwAuthException(ApiResponse response, AuthErrorType authErrorType) {
+        var errorMessage = response.getApiError().getErrorMessage();
+        var cause = response.getApiError().getCause();
+        var httpStatus = response.getApiError().getHttpStatusCode();
+
+        throw new AuthException(
+                httpStatus, String.format(authErrorType.getErrorMessage(), errorMessage), cause);
     }
 }

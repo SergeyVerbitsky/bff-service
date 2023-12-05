@@ -8,6 +8,7 @@ import com.verbitsky.property.KeycloakPropertyProvider;
 import com.verbitsky.service.RemoteApiRequest;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.verbitsky.service.keycloak.request.KeycloakFields.CREDENTIALS;
@@ -42,11 +43,13 @@ public final class KeycloakRequestFactory {
                 buildContentTypeHeaderFormUrlencoded(), buildRefreshTokenRequestFields(token));
     }
 
+    @SuppressWarnings("unused")
     public RemoteApiRequest buildUserInfoRequest(String token) {
         return new RemoteApiRequest(keycloakPropertyProvider.provideUserInfoUri(),
                 buildUserInfoRequestHeaders(token), new HashMap<>());
     }
 
+    @SuppressWarnings("unused")
     public RemoteApiRequest buildLogoutRequest(String userId) {
         return new RemoteApiRequest(keycloakPropertyProvider.provideUserLogoutUri(userId),
                 buildContentTypeHeaderFormUrlencoded(), buildRequestSecretFields());
@@ -104,9 +107,11 @@ public final class KeycloakRequestFactory {
     }
 
     private Map<String, Object> buildUserRegistrationRequestFields(Map<String, String> regData) {
+        String password = regData.get(KeycloakFields.PASSWORD);
+        Credentials credentials = new Credentials(
+                GRANT_TYPE_PASSWORD, password, keycloakPropertyProvider.provideUserPassHashIteration(), BLOCKED_PASSWORD);
         Map<String, Object> requestFields = new HashMap<>(regData);
-        requestFields.put(CREDENTIALS,
-                new Credentials(GRANT_TYPE_PASSWORD, regData.get(KeycloakFields.PASSWORD), BLOCKED_PASSWORD));
+        requestFields.put(CREDENTIALS, List.of(credentials));
 
         return requestFields;
     }
@@ -122,6 +127,7 @@ public final class KeycloakRequestFactory {
     private record Credentials(
             String type,
             String value,
+            int hashIterations,
             boolean temporary) {
     }
 }

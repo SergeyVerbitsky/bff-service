@@ -17,7 +17,8 @@ public interface TokenDataProvider {
 
     Jwt buildJwt(String tokenValue, JwtEncoderParameters parameters) throws JwtEncodingException;
 
-    boolean isTokenValid(Jwt token);
+    @SuppressWarnings("unused")
+    boolean isTokenExpired(Jwt token);
 
-    boolean isTokenValid(String token);
+    boolean isTokenExpired(String token);
 }

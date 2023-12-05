@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 
 import reactor.core.publisher.Mono;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.verbitsky.model.BffLoginRequest;
 import com.verbitsky.model.BffLoginResponse;
+import com.verbitsky.model.BffLogoutRequest;
 import com.verbitsky.model.BffRegisterRequest;
 import com.verbitsky.model.BffRegisterResponse;
 import com.verbitsky.service.auth.AuthService;
@@ -33,7 +35,14 @@ class AuthController {
         return ResponseEntity.ok(userService.processLoginUser(loginRequest));
     }
 
-    @PostMapping("/reg")
+    @PostMapping("/logout")
+    ResponseEntity<Void> processLogout(
+            @Valid @RequestBody BffLogoutRequest logoutRequest) {
+        userService.processUserLogout(logoutRequest);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    @PostMapping("/register")
     ResponseEntity<Mono<BffRegisterResponse>> processRegistration(
             @Valid @RequestBody BffRegisterRequest registerRequest) {
 

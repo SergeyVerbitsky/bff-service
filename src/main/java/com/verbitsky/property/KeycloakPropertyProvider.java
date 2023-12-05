@@ -13,11 +13,15 @@ import java.net.URI;
 @Component
 @EnableConfigurationProperties(KeycloakProperties.class)
 public class KeycloakPropertyProvider {
-    //todo refactor endpoints getter
+    private static final String INTROSPECTION_URI_KEY = "tokenIntrospection";
+    private static final String KEYCLOAK_CLIENT = "keycloak";
+    private static final String USER_INFO_URI_KEY = "userInfo";
+    private static final String USER_LOGOUT_URI_KEY = "userLogout";
+    private static final String USER_REGISTER_URI_KEY = "userRegister";
     private final KeycloakProperties keycloakProperties;
     private final OAuth2ClientProperties.Provider keycloakProvider;
     private final ClientRegistration keycloakClient;
-    private static final String KEYCLOAK_CLIENT = "keycloak";
+
 
     public KeycloakPropertyProvider(OAuth2ClientProperties properties, KeycloakProperties keycloakProperties,
                                     ClientRegistrationRepository clientRepository) {
@@ -34,19 +38,19 @@ public class KeycloakPropertyProvider {
     }
 
     public URI provideIntrospectionUri() {
-        return URI.create("https://mykeycloak:9443/realms/dog_app_realm/protocol/openid-connect/token/introspect");
+        return URI.create(keycloakProperties.endpointMap().get(INTROSPECTION_URI_KEY));
     }
 
     public URI provideUserInfoUri() {
-        return URI.create("https://mykeycloak:9443/realms/dog_app_realm/protocol/openid-connect/userinfo");
+        return URI.create(keycloakProperties.endpointMap().get(USER_INFO_URI_KEY));
     }
 
     public URI provideUserLogoutUri(String userId) {
-        return URI.create(String.format("https://mykeycloak:9443/admin/realms/dog_app_realm/users/%s/logout", userId));
+        return URI.create(String.format(keycloakProperties.endpointMap().get(USER_LOGOUT_URI_KEY), userId));
     }
 
     public URI provideUserRegistrationUri() {
-        return URI.create("https://mykeycloak:9443/admin/realms/dog_app_realm/users");
+        return URI.create(keycloakProperties.endpointMap().get(USER_REGISTER_URI_KEY));
     }
 
     public String provideClientId() {
@@ -58,10 +62,14 @@ public class KeycloakPropertyProvider {
     }
 
     public String provideAdminUserName() {
-        return keycloakProperties.userName();
+        return keycloakProperties.adminUsername();
     }
 
     public String provideAdminUserPassword() {
-        return keycloakProperties.password();
+        return keycloakProperties.adminPassword();
+    }
+
+    public int provideUserPassHashIteration() {
+        return keycloakProperties.userPassHashIteration();
     }
 }

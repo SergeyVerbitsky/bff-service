@@ -24,15 +24,16 @@ public class BackendServiceImpl implements BackendService {
 
     public BackendServiceImpl(RemoteServiceClient backendClient,
                               BackendRequestBuilder requestFactory) {
+
         this.backendClient = backendClient;
         this.requestFactory = requestFactory;
     }
 
     @Override
     public Mono<ApiResponse> getUserSession(String userId) {
-        var request = requestFactory.buildRequest(RequestType.USER_SESSION_OP, Map.of(USER_ID_FIELD, userId));
+        var apiRequest = requestFactory.buildRequest(RequestType.USER_SESSION_OP, Map.of(USER_ID_FIELD, userId));
 
-        return backendClient.get(request, SessionModel.class);
+        return backendClient.get(apiRequest, SessionModel.class);
     }
 
     @Override
@@ -42,5 +43,13 @@ public class BackendServiceImpl implements BackendService {
         var apiRequest = requestFactory.buildRequest(RequestType.USER_SESSION_OP, uriParams, bodyFields);
 
         return backendClient.post(apiRequest, SessionModel.class);
+    }
+
+    @Override
+    public void invalidateUserSession(String userId) {
+        var apiRequest = requestFactory.buildRequest(RequestType.USER_SESSION_OP, Map.of(USER_ID_FIELD, userId));
+        backendClient
+                .delete(apiRequest, SessionModel.class)
+                .subscribe();
     }
 }

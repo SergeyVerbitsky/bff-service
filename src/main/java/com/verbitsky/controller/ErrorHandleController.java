@@ -14,7 +14,6 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import lombok.extern.slf4j.Slf4j;
 
 import com.verbitsky.exception.AuthException;
-import com.verbitsky.service.keycloak.client.ErrorMessage;
 
 import java.util.List;
 import java.util.stream.Collectors;

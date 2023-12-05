@@ -17,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import com.verbitsky.api.client.ApiResponse;
 import com.verbitsky.api.client.RemoteServiceClient;
 import com.verbitsky.property.KeycloakPropertyProvider;
-import com.verbitsky.service.keycloak.client.KeycloakAction;
 import com.verbitsky.service.keycloak.exception.InvalidKeycloakRequestException;
 import com.verbitsky.service.keycloak.request.KeycloakRequestFactory;
 import com.verbitsky.service.keycloak.response.KeycloakIntrospectResponse;
@@ -30,7 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 @Service
 @Lazy(value = false)
-class KeycloakServiceImpl implements KeycloakService, KeycloakScheduledService {
+class KeycloakServiceImpl implements KeycloakService {
     private final RemoteServiceClient keycloakClient;
     private final KeycloakRequestFactory requestFactory;
     private final KeycloakPropertyProvider propertyProvider;
@@ -39,19 +38,11 @@ class KeycloakServiceImpl implements KeycloakService, KeycloakScheduledService {
 
     KeycloakServiceImpl(RemoteServiceClient keycloakClient, KeycloakRequestFactory requestBuilder,
                         KeycloakPropertyProvider propertyProvider) {
-
         this.keycloakClient = keycloakClient;
         this.requestFactory = requestBuilder;
         this.propertyProvider = propertyProvider;
         adminAccessToken = new AtomicReference<>(StringUtils.EMPTY);
         adminRefreshToken = new AtomicReference<>(StringUtils.EMPTY);
-    }
-
-    @Async
-    @EventListener(ApplicationReadyEvent.class)
-    public void init() {
-        log.info("Keycloak service initialization");
-        initAdminTokenUpdate();
     }
 
     @Override
@@ -74,11 +65,11 @@ class KeycloakServiceImpl implements KeycloakService, KeycloakScheduledService {
     }
 
     /*
-     * Updates admin token 1 minute after the application starts and then repeat every 25 minutes.
+     * Updates admin token according to schedule.
      */
     @Async
-    @Scheduled(cron = "0 */10 * * * ?")
-    @Override
+    @EventListener(ApplicationReadyEvent.class)
+    @Scheduled(cron = "${scheduler.cronExpression.keycloak.updateAdminToken}")
     public void initAdminTokenUpdate() {
         log.info("Admin token update process initiated");
 
@@ -96,12 +87,12 @@ class KeycloakServiceImpl implements KeycloakService, KeycloakScheduledService {
     private Mono<ApiResponse> introspectToken(String token) {
         if (StringUtils.isBlank(token)) {
             throw new InvalidKeycloakRequestException(
-                    HttpStatus.BAD_REQUEST, KeycloakAction.LOGIN, "Null or empty token");
+                    HttpStatus.BAD_REQUEST, "Null or empty token");
         }
         var request = requestFactory.buildTokenIntrospectionRequest(token);
 
         return keycloakClient
-                .post(request, ApiResponse.class);
+                .post(request, KeycloakIntrospectResponse.class);
     }
 
     private void processTokenIntrospection(ApiResponse introspectResponse) {
@@ -118,22 +109,22 @@ class KeycloakServiceImpl implements KeycloakService, KeycloakScheduledService {
     }
 
     private void doUpdateAdminTokens() {
-        log.info("Starting admin token update process");
-
         var adminUserName = propertyProvider.provideAdminUserName();
         var adminUserPassword = propertyProvider.provideAdminUserPassword();
         processLogin(adminUserName, adminUserPassword).subscribe(this::updateAminTokenValues);
-
-        log.info("Successfully updated admin token");
     }
 
     private void updateAminTokenValues(ApiResponse loginResponse) {
         if (loginResponse.isErrorResponse()) {
             log.error("Error during admin user login: {}", loginResponse.getApiError().toString());
         } else {
+            log.info("Starting update admin tokens value");
+
             var response = (KeycloakLoginResponse) loginResponse.getResponseObject();
             this.adminAccessToken.getAndSet(response.getAccessToken());
             this.adminRefreshToken.getAndSet(response.getRefreshToken());
+
+            log.info("Successfully updated admin tokens");
         }
     }
 }

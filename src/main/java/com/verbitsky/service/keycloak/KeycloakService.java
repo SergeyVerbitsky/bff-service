@@ -13,6 +13,4 @@ public interface KeycloakService {
     Mono<ApiResponse> processUserRegistration(Map<String, String> regData);
 
     Mono<ApiResponse> processRefreshToken(String token);
-
-    void init();
 }

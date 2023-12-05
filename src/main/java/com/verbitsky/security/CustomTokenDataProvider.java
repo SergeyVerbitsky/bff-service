@@ -69,22 +69,22 @@ public class CustomTokenDataProvider implements TokenDataProvider {
     }
 
     @Override
-    public boolean isTokenValid(Jwt token) {
+    public boolean isTokenExpired(Jwt token) {
         var expiresAt = token.getExpiresAt();
-        return Objects.nonNull(expiresAt) && expiresAt.isAfter(Instant.now());
+        return Objects.nonNull(expiresAt) && expiresAt.isBefore(Instant.now());
     }
 
     @Override
-    public boolean isTokenValid(String token) {
+    public boolean isTokenExpired(String token) {
         Map<String, Object> payload;
         try {
             payload = SignedJWT.parse(token).getPayload().toJSONObject();
         } catch (ParseException e) {
             log.error("Token parsing error. Token value {}, error: {}", token, e.getMessage());
-            return false;
+            return true;
         }
         var expiresAt = Instant.ofEpochSecond(Long.parseLong(payload.get(JwtClaimNames.EXP).toString()));
-        return expiresAt.isAfter(Instant.now());
+        return expiresAt.isBefore(Instant.now());
     }
 
 

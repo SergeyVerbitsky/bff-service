@@ -9,4 +9,6 @@ public interface BackendService {
     Mono<ApiResponse> getUserSession(String userId);
 
     Mono<ApiResponse> saveUserSession(SessionModel sessionDto);
+
+    void invalidateUserSession(String userId);
 }

@@ -1,4 +1,4 @@
-package com.verbitsky.service.keycloak.client;
+package com.verbitsky.controller;
 
 import org.springframework.http.HttpStatusCode;
 

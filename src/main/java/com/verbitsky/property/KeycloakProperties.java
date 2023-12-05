@@ -2,8 +2,12 @@ package com.verbitsky.property;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties("services.keycloak.app-admin-user")
+import java.util.Map;
+
+@ConfigurationProperties("services.keycloak")
 record KeycloakProperties(
-        String userName,
-        String password) {
+        String adminUsername,
+        String adminPassword,
+        int userPassHashIteration,
+        Map<String, String> endpointMap) {
 }
