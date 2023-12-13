@@ -4,7 +4,8 @@ logging:
     org.springframework: INFO
     org.springframework.security: INFO
     org.springframework.data: INFO
-    com.verbitsky: DEBUG
+    org.springframework.web: INFO
+    com.verbitsky: ERROR
     com.netflix.eureka: info
     com.netflix.discovery: info
   pattern:

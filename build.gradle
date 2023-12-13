@@ -17,10 +17,14 @@ repositories {
 
 ext {
     rev_lombok = '1.18.28'
+    rev_guava = '31.1-jre'
     rev_apache_common_lib = '3.13.0'
+    rev_apache_collections = '4.4'
     rev_junit_jupiter = '5.9.2'
     rev_spring_boot = '3.1.3'
     rev_springCloudVersion = '2022.0.2'
+
+    rev_internal_api = '1.0'
 }
 
 apply {
@@ -42,10 +46,10 @@ dependencies {
 
     //common
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: rev_apache_common_lib
-    implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
-    implementation group: 'com.google.guava', name: 'guava', version: '31.1-jre'
+    implementation group: 'org.apache.commons', name: 'commons-collections4', version: rev_apache_collections
+    implementation group: 'com.google.guava', name: 'guava', version: rev_guava
     //internal
-    implementation 'com.verbitsky.api:service-api-core:1.0'
+    implementation "com.verbitsky.api:service-api-core:${rev_internal_api}"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }

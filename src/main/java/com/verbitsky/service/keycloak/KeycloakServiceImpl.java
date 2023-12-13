@@ -19,6 +19,7 @@ import com.verbitsky.api.client.RemoteServiceClient;
 import com.verbitsky.property.KeycloakPropertyProvider;
 import com.verbitsky.service.keycloak.exception.InvalidKeycloakRequestException;
 import com.verbitsky.service.keycloak.request.KeycloakRequestFactory;
+import com.verbitsky.service.keycloak.response.ExternalApiError;
 import com.verbitsky.service.keycloak.response.KeycloakIntrospectResponse;
 import com.verbitsky.service.keycloak.response.KeycloakLoginResponse;
 import com.verbitsky.service.keycloak.response.KeycloakUserRegisterResponse;
@@ -30,6 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Service
 @Lazy(value = false)
 class KeycloakServiceImpl implements KeycloakService {
+    private static final boolean EXTERNAL_SERVICE_FLAG = true;
     private final RemoteServiceClient keycloakClient;
     private final KeycloakRequestFactory requestFactory;
     private final KeycloakPropertyProvider propertyProvider;
@@ -48,25 +50,27 @@ class KeycloakServiceImpl implements KeycloakService {
     @Override
     public Mono<ApiResponse> processLogin(String userName, String password) {
         var request = requestFactory.buildLoginRequest(userName, password);
-        return keycloakClient.post(request, KeycloakLoginResponse.class);
+        return keycloakClient.post(request, KeycloakLoginResponse.class, ExternalApiError.class, EXTERNAL_SERVICE_FLAG);
     }
 
     @Override
     public Mono<ApiResponse> processUserRegistration(Map<String, String> regData) {
         var request = requestFactory.buildUserRegistrationRequest(regData, adminAccessToken.getAcquire());
-        return keycloakClient.post(request, KeycloakUserRegisterResponse.class);
+        return keycloakClient.post(
+                request, KeycloakUserRegisterResponse.class, ExternalApiError.class, EXTERNAL_SERVICE_FLAG);
     }
 
     @Override
     public Mono<ApiResponse> processRefreshToken(String token) {
         var request = requestFactory.buildRefreshTokenRequest(token);
         return keycloakClient
-                .post(request, KeycloakLoginResponse.class);
+                .post(request, KeycloakLoginResponse.class, ExternalApiError.class, EXTERNAL_SERVICE_FLAG);
     }
 
     /*
      * Updates admin token according to schedule.
      */
+    @Override
     @Async
     @EventListener(ApplicationReadyEvent.class)
     @Scheduled(cron = "${scheduler.cronExpression.keycloak.updateAdminToken}")
@@ -92,7 +96,7 @@ class KeycloakServiceImpl implements KeycloakService {
         var request = requestFactory.buildTokenIntrospectionRequest(token);
 
         return keycloakClient
-                .post(request, KeycloakIntrospectResponse.class);
+                .post(request, KeycloakIntrospectResponse.class, ExternalApiError.class, EXTERNAL_SERVICE_FLAG);
     }
 
     private void processTokenIntrospection(ApiResponse introspectResponse) {

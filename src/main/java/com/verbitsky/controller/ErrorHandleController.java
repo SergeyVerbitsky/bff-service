@@ -13,9 +13,14 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 
 import lombok.extern.slf4j.Slf4j;
 
+import com.verbitsky.api.client.ApiError;
+import com.verbitsky.api.client.CommonApiError;
+import com.verbitsky.api.client.CommonApiResponse;
+import com.verbitsky.api.exception.ServiceException;
 import com.verbitsky.exception.AuthException;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -24,47 +29,63 @@ class ErrorHandleController {
     private static final String ERROR_MESSAGE_DELIMITER = ", ";
 
     @ExceptionHandler(value = {AuthException.class})
-    ResponseEntity<ErrorMessage> handleServiceError(AuthException ex) {
-        var errorMessage = new ErrorMessage(
-                ex.getHttpStatusCode(), ex.getHttpStatusCode().value(), ex.getMessage());
+    ResponseEntity<CommonApiResponse> handleAuthServiceError(AuthException ex) {
+        var httpStatusCode = ex.getHttpStatusCode();
+        var response = CommonApiResponse.of(buildApiError(ex), httpStatusCode);
 
-        return ResponseEntity.ofNullable(errorMessage);
+        return ResponseEntity.status(httpStatusCode).body(response);
+    }
+
+
+    @ExceptionHandler(value = {ServiceException.class})
+    ResponseEntity<CommonApiResponse> handleInternalServiceError(ServiceException ex) {
+        var httpStatusCode = ex.getHttpStatusCode();
+        var apiResponse = CommonApiResponse.of(CommonApiError.of(ex.getMessage(), ex), httpStatusCode);
+
+        return ResponseEntity.status(httpStatusCode).body(apiResponse);
     }
 
     @ExceptionHandler(value = {AccessDeniedException.class})
-    ResponseEntity<ErrorMessage> handleAccessDenied(AccessDeniedException ex) {
-        var errorMessage = new ErrorMessage(
-                HttpStatus.FORBIDDEN, HttpStatus.FORBIDDEN.value(), ex.getMessage());
+    ResponseEntity<CommonApiResponse> handleAccessDenied(AccessDeniedException ex) {
+        var httpStatusCode = HttpStatus.FORBIDDEN;
+        var apiResponse = CommonApiResponse.of(CommonApiError.of(ex.getMessage(), ex), httpStatusCode);
 
-        return ResponseEntity.ofNullable(errorMessage);
+        return ResponseEntity.status(httpStatusCode).body(apiResponse);
     }
 
     @ExceptionHandler(value = {WebClientRequestException.class})
-    ResponseEntity<ErrorMessage> handleException(WebClientRequestException ex) {
+    ResponseEntity<CommonApiResponse> handleWebClientException(WebClientRequestException ex) {
         logWebClientException(ex);
-        var errorMessage = new ErrorMessage(
-                HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR.value(), ex.getMessage());
+        var httpStatusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+        var apiResponse = CommonApiResponse.of(CommonApiError.of(ex.getMessage(), ex), httpStatusCode);
 
-        return ResponseEntity.ofNullable(errorMessage);
+        return ResponseEntity.status(httpStatusCode).body(apiResponse);
     }
 
 
     @ExceptionHandler(value = {MethodArgumentNotValidException.class})
-    ResponseEntity<ErrorMessage> handleInvalidArgsException(MethodArgumentNotValidException ex) {
+    ResponseEntity<CommonApiResponse> handleInvalidArgsException(MethodArgumentNotValidException ex) {
         var message = getValidationErrors(ex.getFieldErrors());
-        var errorMessage = new ErrorMessage(
-                HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.value(), message);
+        var httpStatusCode = HttpStatus.BAD_REQUEST;
+        var apiResponse = CommonApiResponse.of(CommonApiError.of(message, "Wrong request data"), httpStatusCode);
 
-        return ResponseEntity.ofNullable(errorMessage);
+        return ResponseEntity.status(httpStatusCode).body(apiResponse);
     }
 
     @ExceptionHandler(value = {Exception.class})
-    ResponseEntity<ErrorMessage> handleException(Exception ex) {
+    ResponseEntity<CommonApiResponse> handleException(Exception ex) {
         logException(ex);
-        var errorMessage = new ErrorMessage(
-                HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR.value(), ex.getMessage());
+        var httpStatusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+        var apiResponse = CommonApiResponse.of(CommonApiError.of(ex.getMessage(), ex), httpStatusCode);
 
-        return ResponseEntity.ofNullable(errorMessage);
+        return ResponseEntity.status(httpStatusCode).body(apiResponse);
+    }
+
+    private ApiError buildApiError(ServiceException exception) {
+        Throwable cause = exception.getCause();
+        return Objects.nonNull(cause)
+                ? CommonApiError.of(exception.getMessage(), exception)
+                : CommonApiError.of(exception.getMessage(), exception.getCauseAsString());
     }
 
     private void logException(Exception ex) {

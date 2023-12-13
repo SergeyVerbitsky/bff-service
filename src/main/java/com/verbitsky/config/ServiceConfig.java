@@ -2,7 +2,6 @@ package com.verbitsky.config;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.NamedType;
 
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
@@ -23,36 +22,27 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import com.verbitsky.api.client.RemoteServiceClient;
 import com.verbitsky.api.client.RemoteServiceClientImpl;
-import com.verbitsky.api.model.SessionModel;
 import com.verbitsky.property.WebClientProperties;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableAsync
 @EnableScheduling
-public class ServiceConfig {
+class ServiceConfig {
     @Bean
     @Primary
-    public ObjectMapper customObjectMapper() {
-
+    ObjectMapper customObjectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.findAndRegisterModules();
-        //add here more subtypes if needed
-        List<NamedType> namedTypes = List.of(
-                new NamedType(SessionModel.class, "sessionModel")
-        );
-
-        namedTypes.forEach(objectMapper::registerSubtypes);
         objectMapper.disable(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE);
 
         return objectMapper;
     }
 
     @Bean
-    public WebClient webClient(WebClientProperties webClientProperties, ExchangeStrategies exchangeStrategies) {
+    WebClient webClient(WebClientProperties webClientProperties, ExchangeStrategies exchangeStrategies) {
         HttpClient httpClient = HttpClient.create()
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, webClientProperties.connectionTimeout())
                 .responseTimeout(Duration.ofMillis(webClientProperties.responseTimeout()))
@@ -75,10 +65,10 @@ public class ServiceConfig {
 
     /*
         Spring webclient uses its own object mapper bean to decode http messages.
-        This bean is used to configure webclient, so it will use custom object mapper but not default.
+        This bean is used to configure webclient, so it will use custom object mapper.
     */
     @Bean
-    public ExchangeStrategies customExchangeStrategies(ObjectMapper customObjectMapper) {
+    ExchangeStrategies customExchangeStrategies(ObjectMapper customObjectMapper) {
         return ExchangeStrategies.builder()
                 .codecs(configurer -> {
                     configurer.defaultCodecs()

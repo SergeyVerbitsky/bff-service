@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
 
 import com.verbitsky.api.client.ApiResponse;
+import com.verbitsky.api.client.CommonApiResponse;
 import com.verbitsky.api.exception.ServiceException;
 import com.verbitsky.api.model.SessionModel;
 import com.verbitsky.converter.ConverterManager;
@@ -33,7 +34,6 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.verbitsky.security.CustomOAuth2TokenAuthentication.authenticationFromUserDetails;
@@ -43,8 +43,8 @@ import static com.verbitsky.service.keycloak.request.KeycloakFields.USER_FIRST_N
 import static com.verbitsky.service.keycloak.request.KeycloakFields.USER_LAST_NAME;
 import static com.verbitsky.service.keycloak.request.KeycloakFields.USER_NAME;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @Service
 @Slf4j
@@ -59,7 +59,8 @@ public class AuthServiceImpl implements AuthService {
     public AuthServiceImpl(@Qualifier("tokenCache") Cache<String, CustomUserDetails> tokenCache,
                            KeycloakService keycloakService,
                            BackendService backendService,
-                           ConverterManager converterManager, TokenDataProvider tokenDataProvider,
+                           ConverterManager converterManager,
+                           TokenDataProvider tokenDataProvider,
                            AuthenticationManager authenticationManager) {
 
         this.keycloakService = keycloakService;
@@ -80,12 +81,12 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void processUserLogout(BffLogoutRequest logoutRequest) {
-        var modelFromStorage = getModelFromStorage(logoutRequest.userId());
-        if (modelFromStorage.isPresent()) {
-            CustomUserDetails userDetails = modelFromStorage.get();
-            if (isSessionIdValid(userDetails, logoutRequest.sessionId())) {
-                invalidateSession(userDetails.getUserId());
-            }
+        var modelFromStorage = getDetailsFromStorage(logoutRequest.userId());
+        if (isSessionIdValid(modelFromStorage, logoutRequest.sessionId())) {
+            invalidateSession(modelFromStorage.getUserId());
+        } else {
+            log.warn("Received suspicious user logout request params: userId={}, sessionId={}",
+                    logoutRequest.userId(), logoutRequest.sessionId());
         }
     }
 
@@ -98,28 +99,42 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public CustomOAuth2TokenAuthentication resolveAuthentication(String userId, String sessionId) {
-        var modelFromStorage = getModelFromStorage(userId);
-        if (modelFromStorage.isPresent()) {
-            CustomUserDetails userDetails = modelFromStorage.get();
-            if (isSessionIdValid(userDetails, sessionId)) {
-                String accessToken = userDetails.getAccessToken();
-                if (tokenDataProvider.isTokenExpired(accessToken)) {
-                    CustomUserDetails updatedModel = processRefreshToken(userDetails.getRefreshToken()).block();
-                    return authenticationFromUserDetails(updatedModel);
-                } else {
-                    return authenticationFromUserDetails(userDetails);
-                }
-            } else {
-                throw new AuthException(BAD_REQUEST, "Invalid userId or sessionId");
-            }
+        CustomUserDetails userDetails;
+        try {
+            userDetails = getDetailsFromStorage(userId);
+        } catch (AuthException exception) {
+            log.warn("Suspicious actions during authentication resolving process: userId={}, sessionId={}",
+                    userId, sessionId);
+            throw new AuthException(BAD_REQUEST, "Invalid user session");
+        } catch (Exception exception) {
+            log.warn("Unexpected exception: {}", exception.getMessage());
+            throw new ServiceException(INTERNAL_SERVER_ERROR, exception.getMessage());
         }
 
-        throw new AuthException(FORBIDDEN, "User session has expired");
+        if (isSessionIdValid(userDetails, sessionId)) {
+            String accessToken = userDetails.getAccessToken();
+            if (tokenDataProvider.isTokenExpired(accessToken)) {
+                String refreshToken = userDetails.getRefreshToken();
+                if (tokenDataProvider.isTokenExpired(refreshToken)) {
+                    throw buildAuthException(
+                            CommonApiResponse.of("User session has expired", UNAUTHORIZED));
+                }
+
+                return processRefreshToken(userDetails.getRefreshToken())
+                        .map(CustomOAuth2TokenAuthentication::authenticationFromUserDetails)
+                        .block();
+            } else {
+                return authenticationFromUserDetails(userDetails);
+            }
+        } else {
+            log.error("Received suspicious user request params: userId={}, sessionId={}", userId, sessionId);
+            throw new AuthException(BAD_REQUEST, "Invalid user session");
+        }
     }
 
     private CustomUserDetails processApiLoginResponse(ApiResponse response) {
         if (response.isErrorResponse()) {
-            throwAuthException(response, AuthErrorType.LOGIN);
+            throw buildAuthException(response);
         }
 
         try {
@@ -140,7 +155,7 @@ public class AuthServiceImpl implements AuthService {
 
     private BffRegisterResponse processApiRegisterResponse(ApiResponse response, BffRegisterRequest request) {
         if (response.isErrorResponse()) {
-            throwAuthException(response, AuthErrorType.REGISTRATION);
+            throw buildAuthException(response);
         }
 
         return new BffRegisterResponse(request.userName());
@@ -155,20 +170,18 @@ public class AuthServiceImpl implements AuthService {
         throw new AuthException(INTERNAL_SERVER_ERROR, "Refresh token processing error");
     }
 
-    private Optional<CustomUserDetails> getModelFromStorage(String userId) {
+    private CustomUserDetails getDetailsFromStorage(String userId) {
         var userFromCache = userCache.getAcquire().getIfPresent(userId);
-        return Objects.nonNull(userFromCache) ? Optional.of(userFromCache) : getUserSessionFromDb(userId);
+        return Objects.nonNull(userFromCache) ? userFromCache : getUserSessionFromDb(userId);
     }
 
-    private Optional<CustomUserDetails> getUserSessionFromDb(String userId) {
-        try {
-            var customUserDetails = backendService.getUserSession(userId)
-                    .map(this::convertUserSessionResponse)
-                    .block();
-            return Optional.of(customUserDetails);
-        } catch (Exception exception) {
-            return Optional.empty();
+    private CustomUserDetails getUserSessionFromDb(String userId) {
+        ApiResponse apiResponse = backendService.getUserSession(userId).block();
+        if (Objects.isNull(apiResponse) || apiResponse.isErrorResponse()) {
+            throw buildAuthException(apiResponse);
         }
+
+        return convertUserSessionResponse(apiResponse);
     }
 
     private CustomUserDetails convertUserSessionResponse(ApiResponse apiResponse) {
@@ -225,12 +238,14 @@ public class AuthServiceImpl implements AuthService {
         return sessionDto;
     }
 
-    private void throwAuthException(ApiResponse response, AuthErrorType authErrorType) {
-        var errorMessage = response.getApiError().getErrorMessage();
-        var cause = response.getApiError().getCause();
-        var httpStatus = response.getApiError().getHttpStatusCode();
+    private AuthException buildAuthException(ApiResponse apiResponse) {
+        if (Objects.isNull(apiResponse)) {
+            throw new ServiceException(INTERNAL_SERVER_ERROR, "Received null apiResponse from remote service");
+        }
+        var errorMessage = apiResponse.getApiError().getErrorMessage();
+        var cause = apiResponse.getApiError().getCause();
+        var httpStatus = apiResponse.getStatusCode();
 
-        throw new AuthException(
-                httpStatus, String.format(authErrorType.getErrorMessage(), errorMessage), cause);
+        return new AuthException(httpStatus, errorMessage, cause);
     }
 }

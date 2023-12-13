@@ -108,8 +108,8 @@ public final class KeycloakRequestFactory {
 
     private Map<String, Object> buildUserRegistrationRequestFields(Map<String, String> regData) {
         String password = regData.get(KeycloakFields.PASSWORD);
-        Credentials credentials = new Credentials(
-                GRANT_TYPE_PASSWORD, password, keycloakPropertyProvider.provideUserPassHashIteration(), BLOCKED_PASSWORD);
+        Credentials credentials = new Credentials(GRANT_TYPE_PASSWORD, password,
+                keycloakPropertyProvider.provideUserPassHashIteration(), BLOCKED_PASSWORD);
         Map<String, Object> requestFields = new HashMap<>(regData);
         requestFields.put(CREDENTIALS, List.of(credentials));
 

@@ -27,9 +27,9 @@ import com.verbitsky.security.CustomAuthFilter;
 @EnableConfigurationProperties(WebClientProperties.class)
 @EnableWebSecurity
 @EnableMethodSecurity()
-public class SecurityConfig {
+class SecurityConfig {
     @Bean
-    public SecurityFilterChain securityFilterChain(
+    SecurityFilterChain securityFilterChain(
             HttpSecurity http, CustomAuthFilter authFilter,
             @Qualifier("customAuthProvider") AuthenticationProvider authProvider) throws Exception {
 
@@ -50,7 +50,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(
+    AuthenticationManager authenticationManager(
             AuthenticationConfiguration authenticationConfiguration) throws Exception {
 
         return authenticationConfiguration.getAuthenticationManager();

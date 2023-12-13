@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableConfigurationProperties(TokenCacheProperties.class)
-public class CacheConfig {
+class CacheConfig {
     private final TokenCacheProperties cacheProperties;
 
     public CacheConfig(TokenCacheProperties cacheProperties) {
@@ -22,7 +22,7 @@ public class CacheConfig {
     }
 
     @Bean("tokenCache")
-    public Cache<String, CustomUserDetails> tokenCache() {
+    Cache<String, CustomUserDetails> tokenCache() {
         return CacheBuilder.newBuilder()
                 .initialCapacity(cacheProperties.initialSize())
                 .expireAfterWrite(cacheProperties.recordTtl(), TimeUnit.MINUTES)

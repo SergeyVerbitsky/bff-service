@@ -1,6 +1,6 @@
 package com.verbitsky.exception;
 
-import org.springframework.http.HttpStatusCode;
+import org.springframework.http.HttpStatus;
 
 import com.verbitsky.api.exception.ServiceException;
 
@@ -10,11 +10,13 @@ public class AuthException extends ServiceException {
     @Serial
     private static final long serialVersionUID = -246425056301051639L;
 
-    public AuthException(HttpStatusCode httpStatusCode, String errorMessage) {
-        super(httpStatusCode, errorMessage);
+
+    public AuthException(HttpStatus httpStatus, String errorMessage, String cause) {
+        super(errorMessage, cause, httpStatus);
+
     }
 
-    public AuthException(HttpStatusCode httpStatusCode, String errorMessage, Throwable cause) {
-        super(errorMessage, cause, httpStatusCode);
+    public AuthException(HttpStatus httpStatus, String errorMessage) {
+        super(httpStatus, errorMessage);
     }
 }

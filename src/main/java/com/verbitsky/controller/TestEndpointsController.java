@@ -14,19 +14,19 @@ public class TestEndpointsController {
 
     @GetMapping("/admin")
     @AdminAccess
-    public String testRoleAdmin() {
+    public String testAdminOnly() {
         return "ok_admin";
     }
 
     @GetMapping("/user")
     @UserAccess
-    public String testAnyRole() {
+    public String testUserOnly() {
         return "ok_user";
     }
 
     @GetMapping("/any")
     @AnyAuthorizedUser
-    public String testAnyRole2() {
+    public String testAnyRole() {
         return "ok_any_user";
     }
 }
