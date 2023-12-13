@@ -44,10 +44,6 @@ dependencies {
     //validation
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
-    //common
-    implementation group: 'org.apache.commons', name: 'commons-lang3', version: rev_apache_common_lib
-    implementation group: 'org.apache.commons', name: 'commons-collections4', version: rev_apache_collections
-    implementation group: 'com.google.guava', name: 'guava', version: rev_guava
     //internal
     implementation "com.verbitsky.api:service-api-core:${rev_internal_api}"
 

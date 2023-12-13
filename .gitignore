@@ -41,3 +41,25 @@ out/
 
 ### Log files ###
 *.log
+
+/bff_service/cert-gen/
+/cert-gen/result/Bff-app-certificate.pem
+/cert-gen/result/Bff-app-certificate-signing-request.csr
+/cert-gen/result/Bff-app-keystore.p12
+/cert-gen/result/Bff-app-private-key.key
+/cert-gen/result/CA-private-key.key
+/cert-gen/result/CA-self-signed-certificate.pem
+/cert-gen/result/CA-self-signed-certificate.srl
+/cert-gen/result/Client-certificate.pem
+/cert-gen/result/Client-certificate-signing-request.csr
+/cert-gen/result/Client-private-key.key
+/cert-gen/result/converted_server_cert.cer
+/cert-gen/result/Server-certificate.pem
+/cert-gen/result/Server-certificate-signing-request.csr
+/cert-gen/result/Server-keystore.p12
+/cert-gen/result/Server-private-key.key
+/cert-gen/result/Server-private-key.pem
+/cert-gen/check store password.bat
+/cert-gen/generate-self-signed-certificates.bat
+/gradle/wrapper/gradle-wrapper.jar
+/gradle/wrapper/gradle-wrapper.properties
