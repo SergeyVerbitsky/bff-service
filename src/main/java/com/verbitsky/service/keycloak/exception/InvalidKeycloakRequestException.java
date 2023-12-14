@@ -5,11 +5,13 @@ import org.springframework.http.HttpStatusCode;
 import lombok.Getter;
 import lombok.Setter;
 
+import com.verbitsky.api.exception.ServiceException;
+
 import java.io.Serial;
 
 @Getter
 @Setter
-public class InvalidKeycloakRequestException extends RuntimeException {
+public class InvalidKeycloakRequestException extends ServiceException {
     @Serial
     private static final long serialVersionUID = 7175021289840209830L;
     private final HttpStatusCode errorCode;

@@ -81,12 +81,15 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void processUserLogout(BffLogoutRequest logoutRequest) {
-        var modelFromStorage = getDetailsFromStorage(logoutRequest.userId());
+        String userId = logoutRequest.userId();
+        var modelFromStorage = getDetailsFromStorage(userId);
         if (isSessionIdValid(modelFromStorage, logoutRequest.sessionId())) {
             invalidateSession(modelFromStorage.getUserId());
+            keycloakService.processLogout(userId)
+                    .subscribe(this::processKeycloakUserLogoutResponse);
         } else {
             log.warn("Received suspicious user logout request params: userId={}, sessionId={}",
-                    logoutRequest.userId(), logoutRequest.sessionId());
+                    userId, logoutRequest.sessionId());
         }
     }
 
@@ -151,6 +154,13 @@ public class AuthServiceImpl implements AuthService {
 
     private BffLoginResponse mapToLoginResponse(CustomUserDetails userDetails) {
         return new BffLoginResponse(userDetails.getUserId(), userDetails.getSessionId());
+    }
+
+    private void processKeycloakUserLogoutResponse(ApiResponse apiResponse) {
+        if (apiResponse.isErrorResponse()) {
+            log.error("Keycloak response error: message: {}, cause: {}",
+                    apiResponse.getApiError().getErrorMessage(), apiResponse.getApiError().getCause());
+        }
     }
 
     private BffRegisterResponse processApiRegisterResponse(ApiResponse response, BffRegisterRequest request) {

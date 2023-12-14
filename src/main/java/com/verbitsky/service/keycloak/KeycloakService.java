@@ -10,6 +10,8 @@ import java.util.Map;
 public interface KeycloakService {
     Mono<ApiResponse> processLogin(String userName, String password);
 
+    Mono<ApiResponse> processLogout(String userId);
+
     Mono<ApiResponse> processUserRegistration(Map<String, String> regData);
 
     Mono<ApiResponse> processRefreshToken(String token);

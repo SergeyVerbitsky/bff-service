@@ -54,6 +54,12 @@ class KeycloakServiceImpl implements KeycloakService {
     }
 
     @Override
+    public Mono<ApiResponse> processLogout(String userId) {
+        var logoutRequest = requestFactory.buildLogoutRequest(userId);
+        return keycloakClient.post(logoutRequest, null, ExternalApiError.class, EXTERNAL_SERVICE_FLAG);
+    }
+
+    @Override
     public Mono<ApiResponse> processUserRegistration(Map<String, String> regData) {
         var request = requestFactory.buildUserRegistrationRequest(regData, adminAccessToken.getAcquire());
         return keycloakClient.post(

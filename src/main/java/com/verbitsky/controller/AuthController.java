@@ -49,6 +49,11 @@ class AuthController {
         return ResponseEntity.ok(userService.processUserRegistration(registerRequest));
     }
 
+    @PostMapping("/keycloak/logout")
+    ResponseEntity<Void> completeUserLogout() {
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
     @GetMapping("/ping")
     String ping() {
         return "ok";
