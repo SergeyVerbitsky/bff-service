@@ -14,9 +14,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.verbitsky.api.client.ApiResponse;
 import com.verbitsky.api.client.CommonApiResponse;
+import com.verbitsky.api.converter.ServiceResponseConverterManager;
 import com.verbitsky.api.exception.ServiceException;
 import com.verbitsky.api.model.SessionModel;
-import com.verbitsky.converter.ConverterManager;
 import com.verbitsky.exception.AuthException;
 import com.verbitsky.model.BffLoginRequest;
 import com.verbitsky.model.BffLoginResponse;
@@ -42,6 +42,7 @@ import static com.verbitsky.service.keycloak.request.KeycloakFields.ENABLE_USER;
 import static com.verbitsky.service.keycloak.request.KeycloakFields.USER_FIRST_NAME;
 import static com.verbitsky.service.keycloak.request.KeycloakFields.USER_LAST_NAME;
 import static com.verbitsky.service.keycloak.request.KeycloakFields.USER_NAME;
+
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
@@ -51,7 +52,7 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 public class AuthServiceImpl implements AuthService {
     private final KeycloakService keycloakService;
     private final BackendService backendService;
-    private final ConverterManager converterManager;
+    private final ServiceResponseConverterManager converterManager;
     private final AtomicReference<Cache<String, CustomUserDetails>> userCache;
     private final TokenDataProvider tokenDataProvider;
     private final AuthenticationManager authenticationManager;
@@ -59,7 +60,7 @@ public class AuthServiceImpl implements AuthService {
     public AuthServiceImpl(@Qualifier("tokenCache") Cache<String, CustomUserDetails> tokenCache,
                            KeycloakService keycloakService,
                            BackendService backendService,
-                           ConverterManager converterManager,
+                           ServiceResponseConverterManager converterManager,
                            TokenDataProvider tokenDataProvider,
                            AuthenticationManager authenticationManager) {
 

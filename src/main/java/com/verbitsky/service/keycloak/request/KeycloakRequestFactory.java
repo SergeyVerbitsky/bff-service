@@ -49,7 +49,6 @@ public final class KeycloakRequestFactory {
                 buildUserInfoRequestHeaders(token), new HashMap<>());
     }
 
-    @SuppressWarnings("unused")
     public RemoteApiRequest buildLogoutRequest(String userId) {
         return new RemoteApiRequest(keycloakPropertyProvider.provideUserLogoutUri(userId),
                 buildContentTypeHeaderFormUrlencoded(), buildRequestSecretFields());
