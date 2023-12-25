@@ -38,13 +38,14 @@ public class RemoteServiceResponseConverterManager implements ServiceResponseCon
         Map<Class<?>, ServiceResponseConverter<?, ?>> innerMap = converters.get(typeFrom);
         if (innerMap == null) {
             throw new ServiceException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    String.format("No suitable converters found for type %s", typeFrom));
+                    String.format("No suitable converters found for type %s", typeFrom.getSimpleName()));
         }
 
         ServiceResponseConverter<?, ?> converter = innerMap.get(typeTo);
         if (converter == null) {
             throw new ServiceException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    String.format("No suitable converter found for conversion from %s to %s", typeFrom, typeTo));
+                    String.format("No suitable converter found for conversion from %s to %s",
+                            typeFrom.getSimpleName(), typeTo.getSimpleName()));
         }
 
         return (ServiceResponseConverter<S, R>) converter;

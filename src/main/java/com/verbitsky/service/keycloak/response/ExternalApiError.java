@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import com.verbitsky.api.client.ApiError;
+import com.verbitsky.api.client.response.ApiError;
 
 import java.io.Serial;
 import java.util.Arrays;

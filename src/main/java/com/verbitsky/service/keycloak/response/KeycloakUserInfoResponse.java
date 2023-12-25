@@ -8,11 +8,12 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.io.Serial;
+import java.io.Serializable;
 
 @Getter
 @Setter
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class KeycloakUserInfoResponse extends KeycloakAbstractResponse {
+public class KeycloakUserInfoResponse implements Serializable {
     @Serial
     private static final long serialVersionUID = 2565488421343003119L;
     @JsonProperty("sub")

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jwt.SignedJWT;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
@@ -12,10 +13,11 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimNames;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
-import org.springframework.security.oauth2.jwt.JwtEncodingException;
 import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
+
+import com.verbitsky.api.exception.ServiceException;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -41,23 +43,33 @@ public class CustomTokenDataProvider implements TokenDataProvider {
     }
 
     @Override
-    public List<SimpleGrantedAuthority> getGrantedAuthorities(String token)
-            throws ParseException, IOException {
+    public List<SimpleGrantedAuthority> getGrantedAuthorities(String token) {
+        List<String> accountRoles = null;
+        try {
+            accountRoles = getAccountRolesFromToken(token);
+        } catch (IOException | ParseException exception) {
+            logAndThrowException(token, exception);
+        }
 
-        var accountRoles = getAccountRolesFromToken(token);
         return buildAuthoritiesFromRoles(accountRoles);
     }
 
     @Override
-    public JwtEncoderParameters getParametersFromToken(String token) throws ParseException {
-        var claimsSet = buildClaimSet(SignedJWT.parse(token).getJWTClaimsSet().getClaims());
-        var jwsHeader = buildJwsHeader(SignedJWT.parse(token).getHeader());
+    public JwtEncoderParameters getParametersFromToken(String token) {
+        JwtClaimsSet claimsSet = null;
+        JwsHeader jwsHeader = null;
+        try {
+            claimsSet = buildClaimSet(SignedJWT.parse(token).getJWTClaimsSet().getClaims());
+            jwsHeader = buildJwsHeader(SignedJWT.parse(token).getHeader());
+        } catch (ParseException exception) {
+            logAndThrowException(token, exception);
+        }
 
         return JwtEncoderParameters.from(jwsHeader, claimsSet);
     }
 
     @Override
-    public Jwt buildJwt(String tokenValue, JwtEncoderParameters parameters) throws JwtEncodingException {
+    public Jwt buildJwt(String tokenValue, JwtEncoderParameters parameters) {
         var issuedAt = parameters.getClaims().getIssuedAt();
         var expiresAt = parameters.getClaims().getExpiresAt();
 
@@ -71,22 +83,25 @@ public class CustomTokenDataProvider implements TokenDataProvider {
     @Override
     public boolean isTokenExpired(Jwt token) {
         var expiresAt = token.getExpiresAt();
-        return Objects.nonNull(expiresAt) && expiresAt.isBefore(Instant.now());
+        if (Objects.isNull(expiresAt)) {
+            return true;
+        }
+
+        return expiresAt.isBefore(Instant.now());
     }
 
     @Override
     public boolean isTokenExpired(String token) {
-        Map<String, Object> payload;
+        Map<String, Object> payload = null;
         try {
             payload = SignedJWT.parse(token).getPayload().toJSONObject();
-        } catch (ParseException e) {
-            log.error("Token parsing error. Token value {}, error: {}", token, e.getMessage());
-            return true;
+        } catch (ParseException exception) {
+            logAndThrowException(token, exception);
         }
         var expiresAt = Instant.ofEpochSecond(Long.parseLong(payload.get(JwtClaimNames.EXP).toString()));
+
         return expiresAt.isBefore(Instant.now());
     }
-
 
     private JwsHeader buildJwsHeader(JWSHeader header) {
         if (header.toJSONObject().isEmpty()) {
@@ -146,5 +161,11 @@ public class CustomTokenDataProvider implements TokenDataProvider {
                 .map(ROLE_PREFIX::concat)
                 .map(SimpleGrantedAuthority::new)
                 .toList();
+    }
+
+    private void logAndThrowException(String token, Exception exception) {
+        log.error("Received wrong token value: {}", token);
+        throw new ServiceException("Token value is not valid",
+                exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

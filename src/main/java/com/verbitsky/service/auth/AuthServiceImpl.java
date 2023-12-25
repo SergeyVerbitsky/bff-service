@@ -12,8 +12,8 @@ import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
 
-import com.verbitsky.api.client.ApiResponse;
-import com.verbitsky.api.client.CommonApiResponse;
+import com.verbitsky.api.client.response.ApiResponse;
+import com.verbitsky.api.client.response.CommonApiResponse;
 import com.verbitsky.api.converter.ServiceResponseConverterManager;
 import com.verbitsky.api.exception.ServiceException;
 import com.verbitsky.api.model.SessionModel;
@@ -26,12 +26,10 @@ import com.verbitsky.model.BffRegisterResponse;
 import com.verbitsky.security.CustomOAuth2TokenAuthentication;
 import com.verbitsky.security.CustomUserDetails;
 import com.verbitsky.security.TokenDataProvider;
-import com.verbitsky.service.backend.BackendService;
+import com.verbitsky.service.backend.BackendUserService;
 import com.verbitsky.service.keycloak.KeycloakService;
 import com.verbitsky.service.keycloak.response.KeycloakLoginResponse;
 
-import java.io.IOException;
-import java.text.ParseException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
@@ -51,7 +49,7 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 @Slf4j
 public class AuthServiceImpl implements AuthService {
     private final KeycloakService keycloakService;
-    private final BackendService backendService;
+    private final BackendUserService backendUserService;
     private final ServiceResponseConverterManager converterManager;
     private final AtomicReference<Cache<String, CustomUserDetails>> userCache;
     private final TokenDataProvider tokenDataProvider;
@@ -59,14 +57,14 @@ public class AuthServiceImpl implements AuthService {
 
     public AuthServiceImpl(@Qualifier("tokenCache") Cache<String, CustomUserDetails> tokenCache,
                            KeycloakService keycloakService,
-                           BackendService backendService,
+                           BackendUserService backendUserService,
                            ServiceResponseConverterManager converterManager,
                            TokenDataProvider tokenDataProvider,
                            AuthenticationManager authenticationManager) {
 
         this.keycloakService = keycloakService;
         this.userCache = new AtomicReference<>(tokenCache);
-        this.backendService = backendService;
+        this.backendUserService = backendUserService;
         this.converterManager = converterManager;
         this.tokenDataProvider = tokenDataProvider;
         this.authenticationManager = authenticationManager;
@@ -147,7 +145,7 @@ public class AuthServiceImpl implements AuthService {
             saveUserDetails(userDetails);
             authenticationManager.authenticate(authenticationFromUserDetails(userDetails));
             return userDetails;
-        } catch (ParseException | IOException | ClassCastException exception) {
+        } catch (ClassCastException exception) {
             throw new AuthException(INTERNAL_SERVER_ERROR,
                     "User login processing error: " + exception.getMessage());
         }
@@ -187,7 +185,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private CustomUserDetails getUserSessionFromDb(String userId) {
-        ApiResponse apiResponse = backendService.getUserSession(userId).block();
+        ApiResponse apiResponse = backendUserService.getUserSession(userId).block();
         if (Objects.isNull(apiResponse) || apiResponse.isErrorResponse()) {
             throw buildAuthException(apiResponse);
         }
@@ -204,9 +202,7 @@ public class AuthServiceImpl implements AuthService {
         return converter.convert(response);
     }
 
-    private CustomUserDetails buildUserDetails(String accessToken, String refreshToken)
-            throws ParseException, IOException {
-
+    private CustomUserDetails buildUserDetails(String accessToken, String refreshToken) {
         var tokenParams = tokenDataProvider.getParametersFromToken(accessToken);
         var userAuthorities = tokenDataProvider.getGrantedAuthorities(accessToken);
         var jwt = tokenDataProvider.buildJwt(accessToken, tokenParams);
@@ -216,12 +212,12 @@ public class AuthServiceImpl implements AuthService {
 
     private void saveUserDetails(CustomUserDetails userDetails) {
         userCache.getAcquire().put(userDetails.getUserId(), userDetails);
-        backendService.saveUserSession(buildSessionDto(userDetails)).subscribe();
+        backendUserService.saveUserSession(buildSessionDto(userDetails)).subscribe();
     }
 
     private void invalidateSession(String userId) {
         userCache.getAcquire().invalidate(userId);
-        backendService.invalidateUserSession(userId);
+        backendUserService.invalidateUserSession(userId);
     }
 
     private boolean isSessionIdValid(CustomUserDetails userDetails, String receivedSessionId) {

@@ -17,18 +17,17 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.GenericFilterBean;
 
-import com.verbitsky.api.client.CommonApiError;
-import com.verbitsky.api.client.CommonApiResponse;
+import com.verbitsky.api.client.response.CommonApiError;
+import com.verbitsky.api.client.response.CommonApiResponse;
 import com.verbitsky.exception.AuthException;
 import com.verbitsky.service.auth.AuthService;
 
 import java.io.IOException;
 
-import static com.verbitsky.security.RequestFields.SESSION_ID;
-import static com.verbitsky.security.RequestFields.USER_ID;
-
 @Component
 public class CustomAuthFilter extends GenericFilterBean {
+    private static final String SESSION_ID = "sessionId";
+    private static final String USER_ID = "userId";
     private final AuthService authService;
 
     public CustomAuthFilter(AuthService authService) {

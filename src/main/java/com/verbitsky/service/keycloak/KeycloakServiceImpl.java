@@ -14,15 +14,15 @@ import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
 
-import com.verbitsky.api.client.ApiResponse;
 import com.verbitsky.api.client.RemoteServiceClient;
+import com.verbitsky.api.client.response.ApiResponse;
+import com.verbitsky.api.client.response.NoContentApiResponse;
 import com.verbitsky.property.KeycloakPropertyProvider;
 import com.verbitsky.service.keycloak.exception.InvalidKeycloakRequestException;
 import com.verbitsky.service.keycloak.request.KeycloakRequestFactory;
 import com.verbitsky.service.keycloak.response.ExternalApiError;
 import com.verbitsky.service.keycloak.response.KeycloakIntrospectResponse;
 import com.verbitsky.service.keycloak.response.KeycloakLoginResponse;
-import com.verbitsky.service.keycloak.response.KeycloakUserRegisterResponse;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -50,20 +50,22 @@ class KeycloakServiceImpl implements KeycloakService {
     @Override
     public Mono<ApiResponse> processLogin(String userName, String password) {
         var request = requestFactory.buildLoginRequest(userName, password);
-        return keycloakClient.post(request, KeycloakLoginResponse.class, ExternalApiError.class, EXTERNAL_SERVICE_FLAG);
+        return keycloakClient.post(
+                request, KeycloakLoginResponse.class, ExternalApiError.class, EXTERNAL_SERVICE_FLAG);
     }
 
     @Override
     public Mono<ApiResponse> processLogout(String userId) {
         var logoutRequest = requestFactory.buildLogoutRequest(userId);
-        return keycloakClient.post(logoutRequest, null, ExternalApiError.class, EXTERNAL_SERVICE_FLAG);
+        return keycloakClient.post(
+                logoutRequest, NoContentApiResponse.class, ExternalApiError.class, EXTERNAL_SERVICE_FLAG);
     }
 
     @Override
     public Mono<ApiResponse> processUserRegistration(Map<String, String> regData) {
         var request = requestFactory.buildUserRegistrationRequest(regData, adminAccessToken.getAcquire());
         return keycloakClient.post(
-                request, KeycloakUserRegisterResponse.class, ExternalApiError.class, EXTERNAL_SERVICE_FLAG);
+                request, NoContentApiResponse.class, ExternalApiError.class, EXTERNAL_SERVICE_FLAG);
     }
 
     @Override

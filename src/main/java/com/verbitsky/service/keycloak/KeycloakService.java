@@ -2,7 +2,7 @@ package com.verbitsky.service.keycloak;
 
 import reactor.core.publisher.Mono;
 
-import com.verbitsky.api.client.ApiResponse;
+import com.verbitsky.api.client.response.ApiResponse;
 
 import java.util.Map;
 

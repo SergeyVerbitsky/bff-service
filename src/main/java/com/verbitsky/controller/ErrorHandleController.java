@@ -16,9 +16,9 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 
 import lombok.extern.slf4j.Slf4j;
 
-import com.verbitsky.api.client.ApiError;
-import com.verbitsky.api.client.CommonApiError;
-import com.verbitsky.api.client.CommonApiResponse;
+import com.verbitsky.api.client.response.ApiError;
+import com.verbitsky.api.client.response.CommonApiError;
+import com.verbitsky.api.client.response.CommonApiResponse;
 import com.verbitsky.api.exception.ServiceException;
 
 import java.util.List;

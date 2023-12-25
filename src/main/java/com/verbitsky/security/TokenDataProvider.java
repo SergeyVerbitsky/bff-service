@@ -3,21 +3,16 @@ package com.verbitsky.security;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
-import org.springframework.security.oauth2.jwt.JwtEncodingException;
 
-import java.io.IOException;
-import java.text.ParseException;
 import java.util.List;
 
 public interface TokenDataProvider {
-    List<SimpleGrantedAuthority> getGrantedAuthorities(String token)
-            throws ParseException, IOException;
+    List<SimpleGrantedAuthority> getGrantedAuthorities(String token);
 
-    JwtEncoderParameters getParametersFromToken(String token) throws ParseException;
+    JwtEncoderParameters getParametersFromToken(String token);
 
-    Jwt buildJwt(String tokenValue, JwtEncoderParameters parameters) throws JwtEncodingException;
+    Jwt buildJwt(String tokenValue, JwtEncoderParameters parameters);
 
-    @SuppressWarnings("unused")
     boolean isTokenExpired(Jwt token);
 
     boolean isTokenExpired(String token);

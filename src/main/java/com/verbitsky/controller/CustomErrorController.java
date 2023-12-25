@@ -8,9 +8,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 
-import com.verbitsky.api.client.ApiResponse;
-import com.verbitsky.api.client.CommonApiError;
-import com.verbitsky.api.client.CommonApiResponse;
+import com.verbitsky.api.client.response.ApiResponse;
+import com.verbitsky.api.client.response.CommonApiError;
+import com.verbitsky.api.client.response.CommonApiResponse;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 

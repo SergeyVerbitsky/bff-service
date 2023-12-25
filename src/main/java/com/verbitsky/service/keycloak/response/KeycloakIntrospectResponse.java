@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.io.Serial;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,7 +22,7 @@ import java.util.List;
 @Setter
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class KeycloakIntrospectResponse extends KeycloakAbstractResponse {
+public class KeycloakIntrospectResponse implements Serializable {
     @Serial
     private static final long serialVersionUID = 3503567850506969737L;
     @JsonProperty("active")

@@ -6,8 +6,8 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
+import com.verbitsky.api.client.request.RemoteApiRequest;
 import com.verbitsky.property.BackendProperties;
-import com.verbitsky.service.RemoteApiRequest;
 
 import java.net.URI;
 import java.util.Collections;

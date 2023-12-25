@@ -4,8 +4,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
+import com.verbitsky.api.client.request.RemoteApiRequest;
 import com.verbitsky.property.KeycloakPropertyProvider;
-import com.verbitsky.service.RemoteApiRequest;
 
 import java.util.HashMap;
 import java.util.List;
