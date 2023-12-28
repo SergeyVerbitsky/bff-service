@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record BffLogoutRequest(
+public record LogoutRequest(
         @NotEmpty(message = "Request parameter1 is required and can't be empty ")
         @NotNull(message = "Request parameter1 can't be empty")
         String userId,

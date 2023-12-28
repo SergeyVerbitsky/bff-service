@@ -5,54 +5,32 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
 import com.verbitsky.api.client.request.RemoteApiRequest;
-import com.verbitsky.property.KeycloakPropertyProvider;
+import com.verbitsky.property.KeycloakProperties;
 
+import java.net.URI;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import static com.verbitsky.service.keycloak.request.KeycloakFields.CREDENTIALS;
 import static com.verbitsky.service.keycloak.request.KeycloakFields.GRANT_TYPE_PASSWORD;
 
 @Component
 public final class KeycloakRequestFactory {
-    private static final boolean BLOCKED_PASSWORD = false;
-    private final KeycloakPropertyProvider keycloakPropertyProvider;
+    private final KeycloakProperties keycloakProperties;
 
-    public KeycloakRequestFactory(KeycloakPropertyProvider propertyProvider) {
-        this.keycloakPropertyProvider = propertyProvider;
+    public KeycloakRequestFactory(KeycloakProperties keycloakProperties) {
+        this.keycloakProperties = keycloakProperties;
     }
 
     public RemoteApiRequest buildLoginRequest(String userName, String password) {
-        return new RemoteApiRequest(keycloakPropertyProvider.provideTokenUri(),
+        return new RemoteApiRequest(URI.create(keycloakProperties.tokenUrl()),
                 buildContentTypeHeaderFormUrlencoded(), buildLoginRequestFields(userName, password));
     }
 
-    public RemoteApiRequest buildUserRegistrationRequest(Map<String, String> regData, String adminToken) {
-        return new RemoteApiRequest(keycloakPropertyProvider.provideUserRegistrationUri(),
-                buildUserRegistrationRequestHeaders(adminToken), buildUserRegistrationRequestFields(regData));
-    }
-
-    public RemoteApiRequest buildTokenIntrospectionRequest(String token) {
-        return new RemoteApiRequest(keycloakPropertyProvider.provideIntrospectionUri(),
-                buildContentTypeHeaderFormUrlencoded(), buildTokenIntrospectionRequestFields(token));
-    }
-
     public RemoteApiRequest buildRefreshTokenRequest(String token) {
-        return new RemoteApiRequest(keycloakPropertyProvider.provideTokenUri(),
+        return new RemoteApiRequest(URI.create(keycloakProperties.tokenUrl()),
                 buildContentTypeHeaderFormUrlencoded(), buildRefreshTokenRequestFields(token));
     }
 
-    @SuppressWarnings("unused")
-    public RemoteApiRequest buildUserInfoRequest(String token) {
-        return new RemoteApiRequest(keycloakPropertyProvider.provideUserInfoUri(),
-                buildUserInfoRequestHeaders(token), new HashMap<>());
-    }
-
-    public RemoteApiRequest buildLogoutRequest(String userId) {
-        return new RemoteApiRequest(keycloakPropertyProvider.provideUserLogoutUri(userId),
-                buildContentTypeHeaderFormUrlencoded(), buildRequestSecretFields());
-    }
 
     private Map<String, String> buildRefreshTokenRequestFields(String refreshToken) {
         var result = new HashMap<>(Map.of(
@@ -75,19 +53,10 @@ public final class KeycloakRequestFactory {
         return result;
     }
 
-    private Map<String, String> buildTokenIntrospectionRequestFields(String token) {
-        var result = new HashMap<>(Map.of(
-                KeycloakFields.TOKEN, token
-        ));
-        result.putAll(buildRequestSecretFields());
-
-        return result;
-    }
-
     private Map<String, String> buildRequestSecretFields() {
         return Map.of(
-                KeycloakFields.CLIENT_ID_FIELD, keycloakPropertyProvider.provideClientId(),
-                KeycloakFields.CLIENT_SECRET_FIELD, keycloakPropertyProvider.provideClientSecret()
+                KeycloakFields.CLIENT_ID_FIELD, keycloakProperties.clientId(),
+                KeycloakFields.CLIENT_SECRET_FIELD, keycloakProperties.clientSecret()
         );
     }
 
@@ -96,37 +65,5 @@ public final class KeycloakRequestFactory {
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         return headers;
-    }
-
-    private HttpHeaders buildUserInfoRequestHeaders(String token) {
-        HttpHeaders headers = buildContentTypeHeaderFormUrlencoded();
-        headers.add(HttpHeaders.AUTHORIZATION, KeycloakFields.BEARER_VALUE.concat(token));
-
-        return headers;
-    }
-
-    private Map<String, Object> buildUserRegistrationRequestFields(Map<String, String> regData) {
-        String password = regData.get(KeycloakFields.PASSWORD);
-        Credentials credentials = new Credentials(GRANT_TYPE_PASSWORD, password,
-                keycloakPropertyProvider.provideUserPassHashIteration(), BLOCKED_PASSWORD);
-        Map<String, Object> requestFields = new HashMap<>(regData);
-        requestFields.put(CREDENTIALS, List.of(credentials));
-
-        return requestFields;
-    }
-
-    private HttpHeaders buildUserRegistrationRequestHeaders(String adminToken) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.add(HttpHeaders.AUTHORIZATION, KeycloakFields.BEARER_VALUE.concat(adminToken));
-
-        return headers;
-    }
-
-    private record Credentials(
-            String type,
-            String value,
-            int hashIterations,
-            boolean temporary) {
     }
 }

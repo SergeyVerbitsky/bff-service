@@ -7,6 +7,7 @@ import reactor.core.publisher.Mono;
 import org.apache.commons.lang3.StringUtils;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.stereotype.Service;
 
@@ -18,11 +19,11 @@ import com.verbitsky.api.converter.ServiceResponseConverterManager;
 import com.verbitsky.api.exception.ServiceException;
 import com.verbitsky.api.model.SessionModel;
 import com.verbitsky.exception.AuthException;
-import com.verbitsky.model.BffLoginRequest;
-import com.verbitsky.model.BffLoginResponse;
-import com.verbitsky.model.BffLogoutRequest;
-import com.verbitsky.model.BffRegisterRequest;
-import com.verbitsky.model.BffRegisterResponse;
+import com.verbitsky.model.LoginRequest;
+import com.verbitsky.model.LoginResponse;
+import com.verbitsky.model.LogoutRequest;
+import com.verbitsky.model.RegisterRequest;
+import com.verbitsky.model.RegisterResponse;
 import com.verbitsky.security.CustomOAuth2TokenAuthentication;
 import com.verbitsky.security.CustomUserDetails;
 import com.verbitsky.security.TokenDataProvider;
@@ -30,16 +31,10 @@ import com.verbitsky.service.backend.BackendUserService;
 import com.verbitsky.service.keycloak.KeycloakService;
 import com.verbitsky.service.keycloak.response.KeycloakLoginResponse;
 
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.verbitsky.security.CustomOAuth2TokenAuthentication.authenticationFromUserDetails;
-import static com.verbitsky.service.keycloak.request.KeycloakFields.EMAIL;
-import static com.verbitsky.service.keycloak.request.KeycloakFields.ENABLE_USER;
-import static com.verbitsky.service.keycloak.request.KeycloakFields.USER_FIRST_NAME;
-import static com.verbitsky.service.keycloak.request.KeycloakFields.USER_LAST_NAME;
-import static com.verbitsky.service.keycloak.request.KeycloakFields.USER_NAME;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
@@ -71,7 +66,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public Mono<BffLoginResponse> processLoginUser(BffLoginRequest loginRequest) {
+    public Mono<LoginResponse> processLoginUser(LoginRequest loginRequest) {
         return keycloakService
                 .processLogin(loginRequest.userName(), loginRequest.password())
                 .map(this::processApiLoginResponse)
@@ -79,13 +74,13 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void processUserLogout(BffLogoutRequest logoutRequest) {
+    public void processUserLogout(LogoutRequest logoutRequest) {
         String userId = logoutRequest.userId();
         var modelFromStorage = getDetailsFromStorage(userId);
         if (isSessionIdValid(modelFromStorage, logoutRequest.sessionId())) {
-            invalidateSession(modelFromStorage.getUserId());
             keycloakService.processLogout(userId)
                     .subscribe(this::processKeycloakUserLogoutResponse);
+            invalidateSession(modelFromStorage.getUserId());
         } else {
             log.warn("Received suspicious user logout request params: userId={}, sessionId={}",
                     userId, logoutRequest.sessionId());
@@ -93,9 +88,9 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public Mono<BffRegisterResponse> processUserRegistration(BffRegisterRequest registerRequest) {
+    public Mono<RegisterResponse> processUserRegistration(RegisterRequest registerRequest) {
         return keycloakService
-                .processUserRegistration(buildRequestFieldsMap(registerRequest))
+                .processUserRegistration(registerRequest)
                 .map(apiResponse -> processApiRegisterResponse(apiResponse, registerRequest));
     }
 
@@ -151,8 +146,8 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private BffLoginResponse mapToLoginResponse(CustomUserDetails userDetails) {
-        return new BffLoginResponse(userDetails.getUserId(), userDetails.getSessionId());
+    private LoginResponse mapToLoginResponse(CustomUserDetails userDetails) {
+        return new LoginResponse(userDetails.getUserId(), userDetails.getSessionId());
     }
 
     private void processKeycloakUserLogoutResponse(ApiResponse apiResponse) {
@@ -162,12 +157,12 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private BffRegisterResponse processApiRegisterResponse(ApiResponse response, BffRegisterRequest request) {
+    private RegisterResponse processApiRegisterResponse(ApiResponse response, RegisterRequest request) {
         if (response.isErrorResponse()) {
             throw buildAuthException(response);
         }
 
-        return new BffRegisterResponse(request.userName());
+        return new RegisterResponse(request.userName());
     }
 
     private Mono<CustomUserDetails> processRefreshToken(String refreshToken) {
@@ -215,7 +210,8 @@ public class AuthServiceImpl implements AuthService {
         backendUserService.saveUserSession(buildSessionDto(userDetails)).subscribe();
     }
 
-    private void invalidateSession(String userId) {
+    @Async
+    public void invalidateSession(String userId) {
         userCache.getAcquire().invalidate(userId);
         backendUserService.invalidateUserSession(userId);
     }
@@ -224,16 +220,6 @@ public class AuthServiceImpl implements AuthService {
         return Objects.nonNull(userDetails)
                 && StringUtils.isNotBlank(receivedSessionId)
                 && receivedSessionId.equals(userDetails.getSessionId());
-    }
-
-    private Map<String, String> buildRequestFieldsMap(BffRegisterRequest registerRequest) {
-        return Map.of(
-                ENABLE_USER, Boolean.toString(true),
-                USER_NAME, registerRequest.userName(),
-                EMAIL, registerRequest.email(),
-                USER_FIRST_NAME, registerRequest.firstName(),
-                USER_LAST_NAME, registerRequest.lastName()
-        );
     }
 
     private SessionModel buildSessionDto(CustomUserDetails userDetails) {

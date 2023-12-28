@@ -34,15 +34,17 @@ apply {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    //cloud
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
     //security
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
-    implementation 'org.springframework.security:spring-security-oauth2-client'
-    implementation 'org.springframework.boot:spring-boot-starter-webflux'
     //validation
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+    //keycloak
+    implementation 'org.keycloak:keycloak-admin-client:21.0.2'
 
     //internal
     implementation "com.verbitsky.api:service-api-core:${rev_internal_api}"

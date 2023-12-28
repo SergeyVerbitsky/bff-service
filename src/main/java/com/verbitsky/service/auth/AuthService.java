@@ -2,19 +2,19 @@ package com.verbitsky.service.auth;
 
 import reactor.core.publisher.Mono;
 
-import com.verbitsky.model.BffLoginRequest;
-import com.verbitsky.model.BffLoginResponse;
-import com.verbitsky.model.BffLogoutRequest;
-import com.verbitsky.model.BffRegisterRequest;
-import com.verbitsky.model.BffRegisterResponse;
+import com.verbitsky.model.LoginRequest;
+import com.verbitsky.model.LoginResponse;
+import com.verbitsky.model.LogoutRequest;
+import com.verbitsky.model.RegisterRequest;
+import com.verbitsky.model.RegisterResponse;
 import com.verbitsky.security.CustomOAuth2TokenAuthentication;
 
 public interface AuthService {
-    Mono<BffLoginResponse> processLoginUser(BffLoginRequest loginRequest);
+    Mono<LoginResponse> processLoginUser(LoginRequest loginRequest);
 
-    Mono<BffRegisterResponse> processUserRegistration(BffRegisterRequest registerRequest);
+    Mono<RegisterResponse> processUserRegistration(RegisterRequest registerRequest);
 
-    void processUserLogout(BffLogoutRequest userId);
+    void processUserLogout(LogoutRequest userId);
 
     CustomOAuth2TokenAuthentication resolveAuthentication(String userId, String sessionId);
 }

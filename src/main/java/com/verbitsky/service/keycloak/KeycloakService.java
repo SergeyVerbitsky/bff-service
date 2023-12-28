@@ -3,8 +3,7 @@ package com.verbitsky.service.keycloak;
 import reactor.core.publisher.Mono;
 
 import com.verbitsky.api.client.response.ApiResponse;
-
-import java.util.Map;
+import com.verbitsky.model.RegisterRequest;
 
 @SuppressWarnings("unused")
 public interface KeycloakService {
@@ -12,9 +11,7 @@ public interface KeycloakService {
 
     Mono<ApiResponse> processLogout(String userId);
 
-    Mono<ApiResponse> processUserRegistration(Map<String, String> regData);
+    Mono<ApiResponse> processUserRegistration(RegisterRequest regData);
 
     Mono<ApiResponse> processRefreshToken(String token);
-
-    void initAdminTokenUpdate();
 }

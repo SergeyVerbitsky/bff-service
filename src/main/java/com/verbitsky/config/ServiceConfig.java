@@ -16,7 +16,6 @@ import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -29,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableAsync
-@EnableScheduling
 class ServiceConfig {
     @Bean
     @Primary

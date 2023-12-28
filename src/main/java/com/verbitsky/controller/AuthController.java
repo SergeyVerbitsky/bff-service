@@ -12,11 +12,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.verbitsky.model.BffLoginRequest;
-import com.verbitsky.model.BffLoginResponse;
-import com.verbitsky.model.BffLogoutRequest;
-import com.verbitsky.model.BffRegisterRequest;
-import com.verbitsky.model.BffRegisterResponse;
+import com.verbitsky.model.LoginRequest;
+import com.verbitsky.model.LoginResponse;
+import com.verbitsky.model.LogoutRequest;
+import com.verbitsky.model.RegisterRequest;
+import com.verbitsky.model.RegisterResponse;
 import com.verbitsky.service.auth.AuthService;
 
 @RestController
@@ -29,22 +29,18 @@ class AuthController {
     }
 
     @PostMapping("/login")
-    ResponseEntity<Mono<BffLoginResponse>> processLogin(
-            @Valid @RequestBody BffLoginRequest loginRequest) {
-
+    ResponseEntity<Mono<LoginResponse>> processLogin(@Valid @RequestBody LoginRequest loginRequest) {
         return ResponseEntity.ok(userService.processLoginUser(loginRequest));
     }
 
     @PostMapping("/logout")
-    ResponseEntity<Void> processLogout(
-            @Valid @RequestBody BffLogoutRequest logoutRequest) {
+    ResponseEntity<Void> processLogout(@Valid @RequestBody LogoutRequest logoutRequest) {
         userService.processUserLogout(logoutRequest);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
     @PostMapping("/register")
-    ResponseEntity<Mono<BffRegisterResponse>> processRegistration(
-            @Valid @RequestBody BffRegisterRequest registerRequest) {
+    ResponseEntity<Mono<RegisterResponse>> processRegistration(@Valid @RequestBody RegisterRequest registerRequest) {
 
         return ResponseEntity.ok(userService.processUserRegistration(registerRequest));
     }
