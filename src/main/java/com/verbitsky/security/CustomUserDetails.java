@@ -36,7 +36,7 @@ public class CustomUserDetails implements UserDetails {
 
     private final List<? extends GrantedAuthority> grantedAuthorities;
 
-    public CustomUserDetails(String refreshToken, Jwt jwt,
+    public CustomUserDetails(Jwt jwt, String refreshToken,
                              List<? extends GrantedAuthority> grantedAuthorities) {
 
         this.refreshToken = refreshToken;

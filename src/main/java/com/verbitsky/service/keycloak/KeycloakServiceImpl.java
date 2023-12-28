@@ -23,7 +23,7 @@ import com.verbitsky.model.RegisterRequest;
 import com.verbitsky.property.KeycloakProperties;
 import com.verbitsky.service.keycloak.request.KeycloakRequestFactory;
 import com.verbitsky.service.keycloak.response.ExternalApiError;
-import com.verbitsky.service.keycloak.response.KeycloakLoginResponse;
+import com.verbitsky.service.keycloak.response.KeycloakTokenResponse;
 
 import javax.ws.rs.core.Response;
 
@@ -56,7 +56,7 @@ class KeycloakServiceImpl implements KeycloakService {
     public Mono<ApiResponse> processLogin(String userName, String password) {
         var request = requestFactory.buildLoginRequest(userName, password);
         return keycloakClient.post(
-                request, KeycloakLoginResponse.class, ExternalApiError.class, EXTERNAL_SERVICE_FLAG);
+                request, KeycloakTokenResponse.class, ExternalApiError.class, EXTERNAL_SERVICE_FLAG);
     }
 
     @Override
@@ -79,10 +79,10 @@ class KeycloakServiceImpl implements KeycloakService {
     }
 
     @Override
-    public Mono<ApiResponse> processRefreshToken(String token) {
+    public Mono<ApiResponse> exchangeRefreshToken(String token) {
         var request = requestFactory.buildRefreshTokenRequest(token);
         return keycloakClient
-                .post(request, KeycloakLoginResponse.class, ExternalApiError.class, EXTERNAL_SERVICE_FLAG);
+                .post(request, KeycloakTokenResponse.class, ExternalApiError.class, EXTERNAL_SERVICE_FLAG);
     }
 
     @SuppressWarnings("SameParameterValue")

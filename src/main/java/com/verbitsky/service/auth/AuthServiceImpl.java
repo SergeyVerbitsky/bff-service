@@ -7,7 +7,7 @@ import reactor.core.publisher.Mono;
 import org.apache.commons.lang3.StringUtils;
 
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.stereotype.Service;
 
@@ -20,21 +20,22 @@ import com.verbitsky.api.exception.ServiceException;
 import com.verbitsky.api.model.SessionModel;
 import com.verbitsky.exception.AuthException;
 import com.verbitsky.model.LoginRequest;
-import com.verbitsky.model.LoginResponse;
+import com.verbitsky.model.LoginResponseData;
 import com.verbitsky.model.LogoutRequest;
 import com.verbitsky.model.RegisterRequest;
-import com.verbitsky.model.RegisterResponse;
 import com.verbitsky.security.CustomOAuth2TokenAuthentication;
 import com.verbitsky.security.CustomUserDetails;
 import com.verbitsky.security.TokenDataProvider;
 import com.verbitsky.service.backend.BackendUserService;
 import com.verbitsky.service.keycloak.KeycloakService;
-import com.verbitsky.service.keycloak.response.KeycloakLoginResponse;
+import com.verbitsky.service.keycloak.response.KeycloakTokenResponse;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.verbitsky.security.CustomOAuth2TokenAuthentication.authenticationFromUserDetails;
+import static com.verbitsky.service.keycloak.request.KeycloakFields.USER_ID;
+import static com.verbitsky.service.keycloak.request.KeycloakFields.USER_SESSION_ID;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
@@ -66,11 +67,11 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public Mono<LoginResponse> processLoginUser(LoginRequest loginRequest) {
+    public Mono<ApiResponse> processLoginUser(LoginRequest loginRequest) {
         return keycloakService
                 .processLogin(loginRequest.userName(), loginRequest.password())
-                .map(this::processApiLoginResponse)
-                .map(this::mapToLoginResponse);
+                .map(this::convertLoginResponse)
+                .doOnNext(this::saveUserSession);
     }
 
     @Override
@@ -88,10 +89,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public Mono<RegisterResponse> processUserRegistration(RegisterRequest registerRequest) {
-        return keycloakService
-                .processUserRegistration(registerRequest)
-                .map(apiResponse -> processApiRegisterResponse(apiResponse, registerRequest));
+    public Mono<ApiResponse> processUserRegistration(RegisterRequest registerRequest) {
+        return keycloakService.processUserRegistration(registerRequest);
     }
 
     @Override
@@ -117,7 +116,7 @@ public class AuthServiceImpl implements AuthService {
                             CommonApiResponse.of("User session has expired", UNAUTHORIZED));
                 }
 
-                return processRefreshToken(userDetails.getRefreshToken())
+                return exchangeRefreshToken(userDetails.getRefreshToken())
                         .map(CustomOAuth2TokenAuthentication::authenticationFromUserDetails)
                         .block();
             } else {
@@ -129,25 +128,26 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private CustomUserDetails processApiLoginResponse(ApiResponse response) {
+    public void invalidateSession(String userId) {
+        userCache.getAcquire().invalidate(userId);
+        backendUserService.invalidateUserSession(userId);
+    }
+
+    private CustomUserDetails processTokenResponse(ApiResponse response) {
         if (response.isErrorResponse()) {
             throw buildAuthException(response);
         }
 
         try {
-            var loginResponse = (KeycloakLoginResponse) response.getResponseObject();
+            saveUserSession(response);
+            var loginResponse = (KeycloakTokenResponse) response.getResponseObject();
             var userDetails = buildUserDetails(loginResponse.getAccessToken(), loginResponse.getRefreshToken());
-            saveUserDetails(userDetails);
             authenticationManager.authenticate(authenticationFromUserDetails(userDetails));
             return userDetails;
         } catch (ClassCastException exception) {
             throw new AuthException(INTERNAL_SERVER_ERROR,
                     "User login processing error: " + exception.getMessage());
         }
-    }
-
-    private LoginResponse mapToLoginResponse(CustomUserDetails userDetails) {
-        return new LoginResponse(userDetails.getUserId(), userDetails.getSessionId());
     }
 
     private void processKeycloakUserLogoutResponse(ApiResponse apiResponse) {
@@ -157,18 +157,10 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private RegisterResponse processApiRegisterResponse(ApiResponse response, RegisterRequest request) {
-        if (response.isErrorResponse()) {
-            throw buildAuthException(response);
-        }
-
-        return new RegisterResponse(request.userName());
-    }
-
-    private Mono<CustomUserDetails> processRefreshToken(String refreshToken) {
+    private Mono<CustomUserDetails> exchangeRefreshToken(String refreshToken) {
         if (!tokenDataProvider.isTokenExpired(refreshToken)) {
-            return keycloakService.processRefreshToken(refreshToken)
-                    .map(this::processApiLoginResponse);
+            return keycloakService.exchangeRefreshToken(refreshToken)
+                    .map(this::processTokenResponse);
         }
 
         throw new AuthException(INTERNAL_SERVER_ERROR, "Refresh token processing error");
@@ -188,6 +180,19 @@ public class AuthServiceImpl implements AuthService {
         return convertUserSessionResponse(apiResponse);
     }
 
+    private ApiResponse convertLoginResponse(ApiResponse tokenResponse) {
+        var responseObject = (KeycloakTokenResponse) tokenResponse.getResponseObject();
+        String userId = tokenDataProvider
+                .getTokenClaim(responseObject.getAccessToken(), USER_ID)
+                .orElseThrow(() -> new AuthException(INTERNAL_SERVER_ERROR,
+                        "Received wrong token", "Can't get userId claim from token"));
+        String sessionId = tokenDataProvider.getTokenClaim(responseObject.getAccessToken(), USER_SESSION_ID)
+                .orElseThrow(() -> new AuthException(INTERNAL_SERVER_ERROR,
+                        "Received wrong token", "Can't get sessionId claim from token"));
+
+        return CommonApiResponse.of(new LoginResponseData(userId, sessionId), HttpStatus.OK);
+    }
+
     private CustomUserDetails convertUserSessionResponse(ApiResponse apiResponse) {
         if (apiResponse.isErrorResponse()) {
             throw new ServiceException(apiResponse.getApiError().toString());
@@ -202,33 +207,30 @@ public class AuthServiceImpl implements AuthService {
         var userAuthorities = tokenDataProvider.getGrantedAuthorities(accessToken);
         var jwt = tokenDataProvider.buildJwt(accessToken, tokenParams);
 
-        return new CustomUserDetails(refreshToken, jwt, userAuthorities);
+        return new CustomUserDetails(jwt, refreshToken, userAuthorities);
     }
 
-    private void saveUserDetails(CustomUserDetails userDetails) {
-        userCache.getAcquire().put(userDetails.getUserId(), userDetails);
-        backendUserService.saveUserSession(buildSessionDto(userDetails)).subscribe();
-    }
 
-    @Async
-    public void invalidateSession(String userId) {
-        userCache.getAcquire().invalidate(userId);
-        backendUserService.invalidateUserSession(userId);
+    private void saveUserSession(ApiResponse tokenResponse) {
+        if (Objects.isNull(tokenResponse) || tokenResponse.isErrorResponse()) {
+            throw buildAuthException(tokenResponse);
+        }
+
+        var responseObject = (KeycloakTokenResponse) tokenResponse.getResponseObject();
+        var accessToken = responseObject.getAccessToken();
+        var refreshToken = responseObject.getRefreshToken();
+        String userId = tokenDataProvider
+                .getParametersFromToken(accessToken)
+                .getClaims()
+                .getClaim(USER_ID);
+
+        backendUserService.saveUserSession(SessionModel.of(userId, accessToken, refreshToken)).subscribe();
     }
 
     private boolean isSessionIdValid(CustomUserDetails userDetails, String receivedSessionId) {
         return Objects.nonNull(userDetails)
                 && StringUtils.isNotBlank(receivedSessionId)
                 && receivedSessionId.equals(userDetails.getSessionId());
-    }
-
-    private SessionModel buildSessionDto(CustomUserDetails userDetails) {
-        var sessionDto = new SessionModel();
-        sessionDto.setAccessToken(userDetails.getAccessToken());
-        sessionDto.setRefreshToken(userDetails.getRefreshToken());
-        sessionDto.setUserId(userDetails.getUserId());
-
-        return sessionDto;
     }
 
     private AuthException buildAuthException(ApiResponse apiResponse) {

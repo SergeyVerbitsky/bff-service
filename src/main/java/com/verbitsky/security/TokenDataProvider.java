@@ -5,11 +5,14 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface TokenDataProvider {
     List<SimpleGrantedAuthority> getGrantedAuthorities(String token);
 
     JwtEncoderParameters getParametersFromToken(String token);
+
+    Optional<String> getTokenClaim(String token, String claim);
 
     Jwt buildJwt(String tokenValue, JwtEncoderParameters parameters);
 

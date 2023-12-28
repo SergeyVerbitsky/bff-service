@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 @Component
 @Slf4j
@@ -66,6 +67,17 @@ public class CustomTokenDataProvider implements TokenDataProvider {
         }
 
         return JwtEncoderParameters.from(jwsHeader, claimsSet);
+    }
+
+    @Override
+    public Optional<String> getTokenClaim(String token, String claim) {
+        try {
+            return Optional.of(getParametersFromToken(token).getClaims().getClaim(claim));
+        } catch (Exception exception) {
+            logAndThrowException(token, exception);
+        }
+
+        return Optional.empty();
     }
 
     @Override

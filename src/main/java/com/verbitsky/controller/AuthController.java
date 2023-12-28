@@ -12,11 +12,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.verbitsky.api.client.response.ApiResponse;
 import com.verbitsky.model.LoginRequest;
-import com.verbitsky.model.LoginResponse;
 import com.verbitsky.model.LogoutRequest;
 import com.verbitsky.model.RegisterRequest;
-import com.verbitsky.model.RegisterResponse;
 import com.verbitsky.service.auth.AuthService;
 
 @RestController
@@ -29,8 +28,9 @@ class AuthController {
     }
 
     @PostMapping("/login")
-    ResponseEntity<Mono<LoginResponse>> processLogin(@Valid @RequestBody LoginRequest loginRequest) {
-        return ResponseEntity.ok(userService.processLoginUser(loginRequest));
+    ResponseEntity<Mono<ApiResponse>> processLogin(@Valid @RequestBody LoginRequest loginRequest) {
+        Mono<ApiResponse> response = userService.processLoginUser(loginRequest);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/logout")
@@ -40,14 +40,8 @@ class AuthController {
     }
 
     @PostMapping("/register")
-    ResponseEntity<Mono<RegisterResponse>> processRegistration(@Valid @RequestBody RegisterRequest registerRequest) {
-
+    ResponseEntity<Mono<ApiResponse>> processRegistration(@Valid @RequestBody RegisterRequest registerRequest) {
         return ResponseEntity.ok(userService.processUserRegistration(registerRequest));
-    }
-
-    @PostMapping("/keycloak/logout")
-    ResponseEntity<Void> completeUserLogout() {
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
     @GetMapping("/ping")

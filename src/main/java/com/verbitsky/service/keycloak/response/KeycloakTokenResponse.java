@@ -14,7 +14,7 @@ import java.io.Serializable;
 @Setter
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class KeycloakLoginResponse implements Serializable {
+public class KeycloakTokenResponse implements Serializable {
     @Serial
     private static final long serialVersionUID = 6450381531922719321L;
     private String accessToken;

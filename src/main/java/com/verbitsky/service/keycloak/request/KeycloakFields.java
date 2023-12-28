@@ -1,5 +1,6 @@
 package com.verbitsky.service.keycloak.request;
 
+@SuppressWarnings("unused")
 public final class KeycloakFields {
     public static final String BEARER_VALUE = "Bearer ";
     public static final String CLIENT_ID_FIELD = "client_id";
@@ -12,6 +13,8 @@ public final class KeycloakFields {
     public static final String EMAIL = "email";
     public static final String USER_FIRST_NAME = "firstName";
     public static final String USER_LAST_NAME = "lastName";
+    public static final String USER_ID = "sub";
+    public static final String USER_SESSION_ID = "sid";
     public static final String ENABLE_USER = "enabled";
     public static final String TOKEN = "token";
     public static final String REFRESH_TOKEN = "refresh_token";
