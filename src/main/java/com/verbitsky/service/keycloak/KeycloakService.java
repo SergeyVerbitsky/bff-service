@@ -9,7 +9,7 @@ import com.verbitsky.model.RegisterRequest;
 public interface KeycloakService {
     Mono<ApiResponse> processLogin(String userName, String password);
 
-    Mono<ApiResponse> processLogout(String userId);
+    Mono<ApiResponse> processLogout(String userId, String sessionId);
 
     Mono<ApiResponse> processUserRegistration(RegisterRequest regData);
 

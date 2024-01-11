@@ -55,13 +55,11 @@ class ErrorHandleController {
         return ResponseEntity.status(httpStatusCode).body(apiResponse);
     }
 
-    @ExceptionHandler(
-            {
-                    NoHandlerFoundException.class,
-                    HttpClientErrorException.NotFound.class,
-                    WebClientResponseException.NotFound.class
-            }
-    )
+    @ExceptionHandler({
+            NoHandlerFoundException.class,
+            HttpClientErrorException.NotFound.class,
+            WebClientResponseException.NotFound.class
+    })
     ResponseEntity<CommonApiResponse> handleNoHandlerFoundException(NoHandlerFoundException exception) {
         var httpStatusCode = HttpStatus.NOT_FOUND;
         var apiError = CommonApiError.of(exception.getMessage(), exception);

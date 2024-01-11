@@ -5,6 +5,7 @@ import reactor.core.publisher.Mono;
 
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.RealmResource;
+import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
@@ -19,6 +20,7 @@ import com.verbitsky.api.client.RemoteServiceClient;
 import com.verbitsky.api.client.response.ApiResponse;
 import com.verbitsky.api.client.response.CommonApiResponse;
 import com.verbitsky.api.client.response.NoContentApiResponse;
+import com.verbitsky.exception.AuthException;
 import com.verbitsky.model.RegisterRequest;
 import com.verbitsky.property.KeycloakProperties;
 import com.verbitsky.service.keycloak.request.KeycloakRequestFactory;
@@ -29,6 +31,7 @@ import javax.ws.rs.core.Response;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -56,13 +59,23 @@ class KeycloakServiceImpl implements KeycloakService {
     public Mono<ApiResponse> processLogin(String userName, String password) {
         var request = requestFactory.buildLoginRequest(userName, password);
         return keycloakClient.post(
-                request, KeycloakTokenResponse.class, ExternalApiError.class, EXTERNAL_SERVICE_FLAG);
+                        request, KeycloakTokenResponse.class, ExternalApiError.class, EXTERNAL_SERVICE_FLAG)
+                .doOnNext(apiResponse -> log.info("received response from keycloak: {}", apiResponse));
     }
 
     @Override
-    public Mono<ApiResponse> processLogout(String userId) {
-        realm.users().get(userId).logout();
-        return Mono.just(new NoContentApiResponse());
+    public Mono<ApiResponse> processLogout(String userId, String sessionId) {
+        UserResource userResource = realm.users().get(userId);
+        userResource.getUserSessions().stream()
+                .filter(session -> Objects.equals(session.getId(), sessionId))
+                .findAny()
+                .ifPresentOrElse(userSessionRepresentation -> userResource.logout(),
+                        () -> {
+                            throw new AuthException(HttpStatus.NOT_FOUND,
+                                    "SessionEntity with id:%s and keycloak_id:%s not found".formatted(sessionId, userId));
+                        });
+
+        return Mono.just(new NoContentApiResponse(HttpStatus.NO_CONTENT));
     }
 
     @Override
@@ -93,7 +106,7 @@ class KeycloakServiceImpl implements KeycloakService {
             return Mono.just(CommonApiResponse.of(entity, HttpStatus.valueOf(response.getStatus())));
         }
 
-        return Mono.just(new NoContentApiResponse());
+        return Mono.just(new NoContentApiResponse(HttpStatus.valueOf(response.getStatus())));
     }
 
     private Mono<ApiResponse> convertToCommonApiError(Response response) {

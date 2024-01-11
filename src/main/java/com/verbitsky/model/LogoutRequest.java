@@ -12,5 +12,8 @@ public record LogoutRequest(
         String userId,
         @NotEmpty(message = "Request parameter2 is required and can't be empty")
         @NotNull(message = "Request parameter2 can't be empty")
-        String sessionId) {
+        String sessionId,
+        @NotEmpty(message = "Request parameter3 is required and can't be empty")
+        @NotNull(message = "Request parameter3 can't be empty")
+        String deviceId) {
 }

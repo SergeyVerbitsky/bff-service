@@ -7,8 +7,10 @@ import jakarta.validation.constraints.NotEmpty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record LoginRequest(
-        @NotEmpty(message = "Field 'userName' is required and can't be empty.")
-        String userName,
+        @NotEmpty(message = "Field 'login' is required and can't be empty.")
+        String login,
         @NotEmpty(message = "Field 'password' is required and can't be empty.")
-        String password) {
+        String password,
+        @NotEmpty(message = "Field 'deviceId' is required and can't be empty.")
+        String deviceId) {
 }

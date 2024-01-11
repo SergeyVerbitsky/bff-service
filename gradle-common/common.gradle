@@ -6,7 +6,7 @@ dependencies {
     compileOnly group: 'org.springframework.boot', name: 'spring-boot-configuration-processor', version: rev_spring_boot
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: rev_apache_common_lib
     implementation group: 'org.apache.commons', name: 'commons-collections4', version: rev_apache_collections
-    implementation group: 'com.google.guava', name: 'guava', version: rev_guava
+
     //annotationProcessors
     annotationProcessor "org.projectlombok:lombok:${rev_lombok}"
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:2.4.2'

@@ -12,7 +12,13 @@ public interface TokenDataProvider {
 
     JwtEncoderParameters getParametersFromToken(String token);
 
-    Optional<String> getTokenClaim(String token, String claim);
+    Optional<String> getTokenClaim(String token, String claimName);
+
+    String getUserLogin(String token);
+
+    String getKeycloakUserId(String token);
+
+    String getSessionId(String token);
 
     Jwt buildJwt(String tokenValue, JwtEncoderParameters parameters);
 

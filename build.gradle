@@ -1,8 +1,8 @@
 plugins {
     id 'java'
     id 'idea'
-    id "org.springframework.boot" version '3.1.3'
-    id 'io.spring.dependency-management' version '1.1.3'
+    id "org.springframework.boot" version '3.2.1'
+    id 'io.spring.dependency-management' version '1.1.4'
     id 'com.github.spotbugs' version '5.0.13'
 }
 
@@ -21,8 +21,12 @@ ext {
     rev_apache_common_lib = '3.13.0'
     rev_apache_collections = '4.4'
     rev_junit_jupiter = '5.9.2'
-    rev_spring_boot = '3.1.3'
-    rev_springCloudVersion = '2022.0.2'
+    rev_spring_boot = '3.2.1'
+    rev_springCloudVersion = '2023.0.0'
+    rev_keycloak_tool = '21.0.2'
+    rev_caffeine_cache = '3.1.8'
+    rev_postgresql = '42.6.0'
+    rev_mapstruct = '1.5.5.Final'
 
     rev_internal_api = '1.0'
 }
@@ -44,11 +48,20 @@ dependencies {
     //validation
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     //keycloak
-    implementation 'org.keycloak:keycloak-admin-client:21.0.2'
+    implementation "org.keycloak:keycloak-admin-client:${rev_keycloak_tool}"
+    //storage
+    implementation group: 'org.postgresql', name: 'postgresql', version: rev_postgresql
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // https://mvnrepository.com/artifact/org.mapstruct/mapstruct
+    implementation "org.mapstruct:mapstruct:${rev_mapstruct}"
+
 
     //internal
     implementation "com.verbitsky.api:service-api-core:${rev_internal_api}"
 
+    annotationProcessor "org.mapstruct:mapstruct-processor:${rev_mapstruct}"
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

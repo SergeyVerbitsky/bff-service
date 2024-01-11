@@ -11,7 +11,11 @@ import java.lang.annotation.Target;
 @Target({ ElementType.METHOD, ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
-@PreAuthorize("hasAnyRole(T(com.verbitsky.security.annotation.ApplicationRole).ROLE_APP_USER, "
-        + "T(com.verbitsky.security.annotation.ApplicationRole).ROLE_APP_ADMIN)")
+@PreAuthorize(
+        """
+                hasAnyRole(
+                T(com.verbitsky.security.annotation.ApplicationRole).ROLE_APP_USER,
+                T(com.verbitsky.security.annotation.ApplicationRole).ROLE_APP_ADMIN)
+                """)
 public @interface AnyAuthorizedUser {
 }

@@ -15,20 +15,40 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
-import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.verbitsky.api.client.RemoteServiceClient;
 import com.verbitsky.api.client.RemoteServiceClientImpl;
+import com.verbitsky.api.converter.EntityDtoConverter;
+import com.verbitsky.api.converter.EntityDtoConverterManager;
+import com.verbitsky.api.converter.RemoteServiceResponseConverterProvider;
+import com.verbitsky.api.converter.ServiceResponseConverter;
+import com.verbitsky.api.converter.ServiceResponseConverterProvider;
+import com.verbitsky.api.converter.SimpleEntityDtoConverterManager;
+import com.verbitsky.api.entity.BaseEntity;
+import com.verbitsky.api.model.AbstractApiModel;
 import com.verbitsky.property.WebClientProperties;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Configuration
-@EnableAsync
 class ServiceConfig {
+    @Bean
+    EntityDtoConverterManager entityDtoConverterManager(
+            Set<EntityDtoConverter<? extends AbstractApiModel, ? extends BaseEntity>> converterSet) {
+
+        return new SimpleEntityDtoConverterManager(converterSet);
+    }
+
+    @Bean
+    ServiceResponseConverterProvider serviceResponseConverterManager(List<ServiceResponseConverter<?, ?>> converters) {
+        return new RemoteServiceResponseConverterProvider(converters);
+    }
+
     @Bean
     @Primary
     ObjectMapper customObjectMapper() {

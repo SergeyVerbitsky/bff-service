@@ -29,6 +29,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import static com.verbitsky.service.keycloak.request.KeycloakFields.KEYCLOAK_USER_ID;
+import static com.verbitsky.service.keycloak.request.KeycloakFields.USER_LOGIN;
+import static com.verbitsky.service.keycloak.request.KeycloakFields.USER_SESSION_ID;
+
 @Component
 @Slf4j
 public class CustomTokenDataProvider implements TokenDataProvider {
@@ -70,14 +74,35 @@ public class CustomTokenDataProvider implements TokenDataProvider {
     }
 
     @Override
-    public Optional<String> getTokenClaim(String token, String claim) {
+    public Optional<String> getTokenClaim(String token, String claimName) {
         try {
-            return Optional.of(getParametersFromToken(token).getClaims().getClaim(claim));
+            return Optional.of(getParametersFromToken(token).getClaims().getClaim(claimName));
         } catch (Exception exception) {
             logAndThrowException(token, exception);
         }
 
         return Optional.empty();
+    }
+
+    @Override
+    public String getUserLogin(String accessToken) {
+        return getParametersFromToken(accessToken)
+                .getClaims()
+                .getClaim(USER_LOGIN);
+    }
+
+    @Override
+    public String getKeycloakUserId(String accessToken) {
+        return getParametersFromToken(accessToken)
+                .getClaims()
+                .getClaim(KEYCLOAK_USER_ID);
+    }
+
+    @Override
+    public String getSessionId(String accessToken) {
+        return getParametersFromToken(accessToken)
+                .getClaims()
+                .getClaim(USER_SESSION_ID);
     }
 
     @Override

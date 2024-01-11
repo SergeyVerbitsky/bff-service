@@ -28,6 +28,7 @@ import java.io.IOException;
 public class CustomAuthFilter extends GenericFilterBean {
     private static final String SESSION_ID = "sessionId";
     private static final String USER_ID = "userId";
+    private static final String DEVICE_ID = "deviceId";
     private final AuthService authService;
 
     public CustomAuthFilter(AuthService authService) {
@@ -50,9 +51,11 @@ public class CustomAuthFilter extends GenericFilterBean {
         HttpServletRequest req = (HttpServletRequest) request;
         String userId = req.getHeader(USER_ID);
         String sessionId = req.getHeader(SESSION_ID);
+        String deviceId = req.getHeader(DEVICE_ID);
 
         if (StringUtils.isNotBlank(userId) && StringUtils.isNotBlank(sessionId)) {
-            CustomOAuth2TokenAuthentication authentication = authService.resolveAuthentication(userId, sessionId);
+            CustomOAuth2TokenAuthentication authentication =
+                    authService.resolveAuthentication(userId, sessionId, deviceId);
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
     }
